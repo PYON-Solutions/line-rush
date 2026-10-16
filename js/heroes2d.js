@@ -1,6 +1,7 @@
 // 게임 ↔ characters/ 연결 어댑터
 // 각 영웅을 오프스크린 캔버스에 2D 퍼펫으로 그리고, Three.js 평면(CanvasTexture)으로 3D 월드에 배치한다.
 import * as THREE from '../vendor/three.module.js';
+import { groundDecal, T, TEAM_RGB } from './sprites2d.js';
 import { HEROES, GAME_KEY, loadHeroes, newChar, setMode, update, renderChar, drawChar, getPose,
   setTarget, setWorld, setShake, tickFX, drawFX, FX, SIMQ, tickSim, TAU } from '../characters/index.js';
 
@@ -9,7 +10,6 @@ export const heroesReady = loadHeroes();
 const CW = 384, CH = 384;          // 영웅 하나당 텍스처 해상도
 const PCS = 1.0, PGY = 640;          // 퍼펫 공간: 720단위 높이, 지면 y=640
 export const PLANE = 4.6;            // 월드 단위 평면 크기 (뭉치 키 ≈ 2.4)
-const TEAM_COL = ['79,179,255', '255,90,90'];
 
 export function makePuppetHero(gameKey, team) {
   const hero = HEROES[GAME_KEY[gameKey] || gameKey];
@@ -18,11 +18,13 @@ export function makePuppetHero(gameKey, team) {
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
-  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, alphaTest: 0.02, side: THREE.DoubleSide });
+  const mat = new THREE.MeshBasicMaterial({ toneMapped: false, map: tex, transparent: true, depthWrite: false, alphaTest: 0.02, side: THREE.DoubleSide });
   const plane = new THREE.Mesh(new THREE.PlaneGeometry(PLANE, PLANE), mat);
   plane.position.y = PLANE * (0.5 - (720 - PGY) / 720); // 퍼펫 지면 = 그룹 원점
   plane.renderOrder = 5;
   const grp = new THREE.Group(); grp.add(plane);
+  // 팀 색 표시: 발밑 바닥 링(3D) — 진한 파랑/빨강
+  const ring = groundDecal(T.ring(TEAM_RGB[team] || TEAM_RGB[0]), 1.9, 0.75); ring.renderOrder = 1.2; grp.add(ring); grp.userData.ring = ring;
   const ch = newChar(hero, 0, team ? -1 : 1);
   setMode(ch, 'idle');
   // 영웅마다 독립된 이펙트 리스트
@@ -56,10 +58,6 @@ export function updatePuppet(m, e, dt) {
   const g = P.g, U = CH / 720;
   g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, CW, CH);
   if (e.flash > 0.6) g.translate((Math.random() - .5) * 6, 0);
-  // 팀 색 표시: 발밑 링
-  g.save(); g.translate(CW / 2, PGY * U);
-  g.fillStyle = `rgba(${TEAM_COL[P.team] || TEAM_COL[0]},.28)`; g.strokeStyle = `rgba(${TEAM_COL[P.team] || TEAM_COL[0]},.95)`;
-  g.lineWidth = 5 * U; g.beginPath(); g.ellipse(0, 0, 95 * U, 24 * U, 0, 0, TAU); g.fill(); g.stroke(); g.restore();
   drawFX('back'); renderChar(ch); drawFX('front');
   // 피격 플래시
   if (e.flash > 0) { g.save(); g.globalCompositeOperation = 'source-atop'; g.fillStyle = `rgba(255,255,255,${Math.min(.8, e.flash * .8)})`; g.fillRect(0, 0, CW, CH); g.restore(); }

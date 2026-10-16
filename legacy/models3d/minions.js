@@ -1,5 +1,5 @@
 // 미니언 3D 모델 (물/불/바위 정령, tier 0 근접 · 1 원거리 · 2 공성)
-import { THREE, g, mat, add, sphere, cyl, cone, box, capsule, face, limbRefs, starMesh, collectMats, torushandle } from '../js/models.js';
+import { THREE, g, mat, add, sphere, cyl, cone, box, capsule, face, limbRefs, starMesh, collectMats, torushandle } from '../../js/models.js';
 /** Minions: water/fire/rock spirits */
 export function makeMinion(elem, tier, team) {
   // elem: 'water'|'fire'|'rock', tier: 0 melee, 1 ranged, 2 siege

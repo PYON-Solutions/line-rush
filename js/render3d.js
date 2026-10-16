@@ -1,12 +1,14 @@
 // Three.js 2.5D renderer for Line Rush
 import * as THREE from '../vendor/three.module.js';
 import { makeCrate, makeRock, makeWard, makePlatform, makeProjectile } from './models.js';
-import { makeMinion } from '../minions/model.js';
-import { makeDragon } from '../dragons/model.js';
-import { makeBase } from '../bases/model.js';
-import { makeTower } from '../towers/model.js';
+import { loadSprites, fxGroup, tickFx, burst as fxBurst } from './sprites2d.js';
+import { makeMinion, minionPaths } from '../minions/sprite.js';
+import { makeDragon, dragonPaths } from '../dragons/sprite.js';
+import { makeBase, basePaths, baseHeight } from '../bases/sprite.js';
+import { makeTower, towerPaths } from '../towers/sprite.js';
 import { heroesReady, makePuppetHero, updatePuppet } from './heroes2d.js';
-export const assetsReady = heroesReady; // 영웅은 characters/ 의 2D 퍼펫
+// 영웅은 characters/ 의 2D 퍼펫, 미니언·타워·기지·드래곤은 각 폴더의 2D 페인팅 패널
+export const assetsReady = Promise.all([heroesReady, loadSprites([...minionPaths(), ...towerPaths(), ...basePaths(), ...dragonPaths()])]);
 
 const GROUND_Y = 0;
 const SCALE = 0.028; // game units → world units (hero ~72px → ~2 units)
@@ -168,6 +170,8 @@ export function createRenderer(container) {
   const particles = [];
   const partGroup = new THREE.Group();
   world.add(partGroup);
+  world.add(fxGroup());
+  const dying = []; // 사망/파괴 애니메이션 중인 패널
 
   // HP bar sprites helper (canvas texture)
   const hpBarCache = new Map();
@@ -175,8 +179,9 @@ export function createRenderer(container) {
     const cv = document.createElement('canvas');
     cv.width = 64; cv.height = 10;
     const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
     tex.magFilter = THREE.NearestFilter;
-    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, toneMapped: false });
     const spr = new THREE.Sprite(mat);
     spr.scale.set(1.4, 0.22, 1);
     spr.userData.cv = cv; spr.userData.tex = tex; spr.userData.team = team;
@@ -208,6 +213,8 @@ export function createRenderer(container) {
   function clearMeshes() {
     for (const [, m] of meshMap) { world.remove(m); }
     meshMap.clear();
+    for (const d of dying) world.remove(d.m);
+    dying.length = 0;
     for (const [, m] of projMap) { world.remove(m); }
     projMap.clear();
     for (const p of platMeshes) world.remove(p);
@@ -237,8 +244,8 @@ export function createRenderer(container) {
     else if (e.kind === 'minion') {
       const elem = window.MAP ? MAP.teamElem[e.team] : (e.team === 0 ? 'water' : 'fire');
       // rock variant unused in spawn but supported
-      m = makeMinion(elem, e.mt.img, e.team);
-    } else if (e.kind === 'dragon') m = makeDragon();
+      m = makeMinion(elem, e.mt.img, e.team, e.mt);
+    } else if (e.kind === 'dragon') m = makeDragon((window.MAP && MAP.dragon) || 'dragon');
     else if (e.kind === 'base') m = makeBase(0, e.team);
     else if (e.kind === 'tower') m = makeTower(e.lv || 1, e.branch, e.team);
     else if (e.kind === 'obst') m = e.type === 'rock' ? makeRock() : makeCrate();
@@ -247,7 +254,7 @@ export function createRenderer(container) {
     // HP bar
     if (e.kind === 'hero' || e.kind === 'minion' || e.kind === 'tower' || e.kind === 'base' || e.kind === 'dragon') {
       const hp = makeHpSprite(e.team === 2 ? 2 : e.team);
-      hp.position.y = e.kind === 'base' ? 4.5 : e.kind === 'dragon' ? 3.2 : e.kind === 'tower' ? 3.0 : e.kind === 'hero' ? 2.9 : 2.4;
+      hp.position.y = e.kind === 'base' ? 4.5 : e.kind === 'dragon' ? 3.9 : e.kind === 'tower' ? 4.2 : e.kind === 'hero' ? 2.9 : (m.userData.minion ? m.userData.minion.h + 0.15 : 2.4);
       m.add(hp);
       m.userData.hpSpr = hp;
     }
@@ -350,43 +357,48 @@ export function createRenderer(container) {
     if (e.kind === 'base') {
       const st = (Gref && Gref.teams) ? Gref.teams[e.team].stage : 0;
       let m = meshMap.get(e);
+      let m0;
       if (m && m.userData.stage !== st) {
-        world.remove(m); meshMap.delete(e); m = null;
+        m0 = m.userData.stage; world.remove(m); meshMap.delete(e); m = null;
       }
       if (!m) {
-        m = makeBase(st, e.team);
+        const up = m0 !== undefined && m0 < st;
+        m = makeBase(st, e.team, up);
         m.userData.stage = st;
         const hp = makeHpSprite(e.team);
-        hp.position.y = 3.5 + st * 0.4;
+        hp.position.y = baseHeight(st) + 0.3;
         m.add(hp); m.userData.hpSpr = hp;
         world.add(m); meshMap.set(e, m);
       }
       m.visible = true;
-      m.position.set(gx(e.x), 0, 0);
+      m.position.set(gx(e.x), 0, -0.8);
       if (m.userData.hpSpr) {
         updateHpSprite(m.userData.hpSpr, e.hp / e.maxHp, e.team);
         m.userData.hpSpr.visible = true;
       }
-      if (e.flash > 0) animCharacter(m, e, dt, t);
+      m.userData.update(m, e, dt, t);
       return;
     }
     if (e.kind === 'tower') {
       let m = meshMap.get(e);
       const key = `${e.lv}_${e.branch || ''}`;
+      let upg = false;
       if (m && m.userData.tk !== key) {
-        world.remove(m); meshMap.delete(e); m = null;
+        world.remove(m); meshMap.delete(e); m = null; upg = true;
       }
       if (!m) {
         m = makeTower(e.lv || 1, e.branch, e.team);
         m.userData.tk = key;
+        if (upg) fxBurst(gx(e.x), 2, 0, { n: 24, tex: null, color: [0xffffff, 0xffe066], spd: 3.5, size: .3, life: .9, g: 2, spread: 1.5, spreadY: 3, add: true });
         const hp = makeHpSprite(e.team);
-        hp.position.y = 2.8;
+        hp.position.y = 4.3;
         m.add(hp); m.userData.hpSpr = hp;
         world.add(m); meshMap.set(e, m);
       }
       m.visible = true;
-      m.position.set(gx(e.x), 0, 0);
+      m.position.set(gx(e.x), 0, -0.5);
       if (m.userData.hpSpr) updateHpSprite(m.userData.hpSpr, e.hp / e.maxHp, e.team);
+      m.userData.update(m, e, dt, t);
       return;
     }
 
@@ -395,10 +407,12 @@ export function createRenderer(container) {
     m.visible = true;
     const y = e.kind === 'obst' || e.kind === 'ward' ? 0 : gy(e.y, GROUND);
     // slight Z offset by kind for depth sorting feel
-    const zOff = e.kind === 'hero' ? 0.7 : e.kind === 'minion' ? (e.team === 0 ? 0.05 : -0.05) : 0;
+    if (e.zj === undefined) e.zj = Math.random() * 0.12;
+    const zOff = e.kind === 'hero' ? 0.7 : e.kind === 'minion' ? (e.team === 0 ? 0.3 : 0.1) + e.zj : e.kind === 'dragon' ? -0.2 : 0;
     m.position.set(gx(e.x), Math.max(0, y), zOff);
 
     if (m.userData.puppet) updatePuppet(m, e, dt);
+    else if (m.userData.update) m.userData.update(m, e, dt, t);
     else if (e.kind === 'hero' || e.kind === 'minion' || e.kind === 'dragon') {
       animCharacter(m, e, dt, t);
     }
@@ -494,8 +508,9 @@ export function createRenderer(container) {
         // keep obst until dead
         if (e.kind === 'obst' && !e.dead && G.obst && G.obst.includes(e)) continue;
         if (!e.dead && G.ents && G.ents.includes(e)) continue;
-        world.remove(m);
         meshMap.delete(e);
+        if (e.dead && m.userData.die) { m.visible = true; if (m.userData.hpSpr) m.userData.hpSpr.visible = false; m.userData.die(m, 0, true); dying.push({ m, t: 0, life: e.kind === 'minion' ? 0.35 : e.kind === 'dragon' ? 0.6 : 0.9 }); }
+        else world.remove(m);
       }
     }
     for (const [p, m] of [...projMap]) {
@@ -593,10 +608,11 @@ export function createRenderer(container) {
     menuHeroes.forEach((h, i) => {
       const k = ['bear', 'chick', 'cat'][i];
       const sel = selHero === k;
-      h.position.y = Math.abs(Math.sin(t * 3 + i)) * (sel ? 0.25 : 0.1);
+      h.position.y = Math.abs(Math.sin(t * 3 + i)) * (sel ? 0.25 : 0.1) + (sceneName === 'select' ? 1.75 : 0); // 선택 화면: 카드 위로
+      h.position.x = (i - 1) * (sceneName === 'select' ? 3.7 : 3.5) - (sceneName === 'select' ? 1.5 : 0);
       // face camera slightly, gentle turn
       { const P = h.userData.puppet; const dtm = Math.min(0.05, Math.max(0, t - (P.lastT ?? t))); P.lastT = t; updatePuppet(h, { face: 1, ground: true, vx: 0 }, dtm); }
-      const s = sel ? 1.25 : 1.05;
+      const s = sceneName === 'select' ? (sel ? 0.95 : 0.8) : (sel ? 1.25 : 1.05);
       h.scale.setScalar(s);
       const L = h.userData.L;
       if (L && L.armL) {
@@ -663,6 +679,8 @@ export function createRenderer(container) {
 
     syncParticles(G.parts || [], GROUND, dt);
     pruneMaps(G);
+    for (let i = dying.length - 1; i >= 0; i--) { const d = dying[i]; d.t += dt || 0.016; const k = Math.min(1, d.t / d.life); d.m.userData.die(d.m, k, false); if (k >= 1) { world.remove(d.m); dying.splice(i, 1); } }
+    tickFx(dt || 0.016);
 
     // empty tower slots markers
     // (drawn on 2D HUD overlay instead for clarity)

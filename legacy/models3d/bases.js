@@ -1,5 +1,5 @@
 // 기지 3D 모델 (stage 0~4: 초가집→동물 왕국 성, team 0 파랑 / 1 빨강)
-import { THREE, g, mat, add, sphere, cyl, cone, box, capsule, face, limbRefs, starMesh, collectMats, torushandle } from '../js/models.js';
+import { THREE, g, mat, add, sphere, cyl, cone, box, capsule, face, limbRefs, starMesh, collectMats, torushandle } from '../../js/models.js';
 export function makeBase(stage, team) {
   const root = new THREE.Group();
   const accent = team === 0 ? 0x3a8fff : 0xff4a4a;

@@ -333,6 +333,7 @@ function updTower(t, dt) {
   if (!cands.length) return;
   cands.sort((a,b) => (a.kind==='hero')-(b.kind==='hero') || Math.abs(a.x-t.x)-Math.abs(b.x-t.x));
   const top = {x:t.x, y:t.y - t.h + 15};
+  t.shotSeq = (t.shotSeq||0)+1; // 렌더러: 발사 반동/섬광
   if (t.branch==='rapid') { t.cd = TOWER.rapid.cd; const e=cands[0]; G.proj.push({kind:'arrow', x:top.x, y:top.y, team:t.team, owner:t, target:e, dmg:TOWER.rapid.dmg*(e.kind==='minion'?TOWER.rapid.minionMul:1), spd:800, homing:true}); return; }
   if (t.branch==='cannon') { t.cd = TOWER.cannon.cd; const e = cands.find(c=>c.kind==='hero') || cands.slice().sort((a,b)=>b.maxHp-a.maxHp)[0];
     G.proj.push({kind:'ball', big:true, x:top.x, y:top.y, team:t.team, owner:t, target:e, dmg:TOWER.cannon.dmg, spd:460, homing:true, aoe:TOWER.cannon.aoe, heroMul:TOWER.cannon.heroMul}); if (Math.abs(t.x-G.hero.x)<500) shake=Math.max(shake,3); return; }
@@ -343,7 +344,7 @@ function updTower(t, dt) {
 function updBase(b, dt) {
   const st = G.teams[b.team].stage;
   if (st >= 2) { b.rockT -= dt; if (b.rockT<=0) { const e = enemiesOf(b.team).filter(e=>Math.abs(e.x-b.x)<BASE.rockRange).sort((a,c)=>Math.abs(a.x-b.x)-Math.abs(c.x-b.x))[0];
-    if (e) { b.rockT = BASE.rockCd; G.proj.push({kind:'rock', x:b.x, y:b.y-b.h+20, team:b.team, owner:b, target:e, dmg:BASE.rockDmg*(1+0.25*(st-2)), spd:480, homing:true, aoe:40}); } } }
+    if (e) { b.rockT = BASE.rockCd; b.shotSeq = (b.shotSeq||0)+1; G.proj.push({kind:'rock', x:b.x, y:b.y-b.h+20, team:b.team, owner:b, target:e, dmg:BASE.rockDmg*(1+0.25*(st-2)), spd:480, homing:true, aoe:40}); } } }
 }
 function updDragon(d, dt) {
   d.y = d.homeY - 10 - Math.sin(d.anim*2)*8;

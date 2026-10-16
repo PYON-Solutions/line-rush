@@ -1,5 +1,5 @@
 // 드래곤 3D 모델
-import { THREE, g, mat, add, sphere, cyl, cone, box, capsule, face, limbRefs, starMesh, collectMats, torushandle } from '../js/models.js';
+import { THREE, g, mat, add, sphere, cyl, cone, box, capsule, face, limbRefs, starMesh, collectMats, torushandle } from '../../js/models.js';
 export function makeDragon() {
   const root = new THREE.Group();
   const L = limbRefs(root);

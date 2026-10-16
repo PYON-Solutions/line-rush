@@ -1,5 +1,5 @@
 // 타워 3D 모델 (lv 1~3 화살탑, branch 'rapid' 연사 / 'cannon' 대포)
-import { THREE, g, mat, add, sphere, cyl, cone, box, capsule, face, limbRefs, starMesh, collectMats, torushandle } from '../js/models.js';
+import { THREE, g, mat, add, sphere, cyl, cone, box, capsule, face, limbRefs, starMesh, collectMats, torushandle } from '../../js/models.js';
 export function makeTower(lv, branch, team) {
   const root = new THREE.Group();
   const accent = team === 0 ? 0x3a8fff : 0xff4a4a;
