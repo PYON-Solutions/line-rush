@@ -273,7 +273,7 @@ function updHero(h, dt) {
   h.swing = Math.max(0,(h.swing||0)-dt*4);
 }
 function pickTarget(h, face) {
-  const r = h.d.range; let best=null, bs=1e9;
+  const r = heroRange(h); let best=null, bs=1e9;
   for (const e of enemiesOf(h.team, {dragon:true})) {
     if (face && (e.x-h.x)*face < -e.w/2) continue;
     const dx=Math.abs(e.x-h.x)-(e.w/2); const dy=Math.abs(cy(e)-cy(h));
@@ -288,6 +288,8 @@ function pickTarget(h, face) {
 function canUlt(h){ return h.lv >= ULT_LV; }
 function skillOpen(h,i){ return h.lv >= SKILL_LV[i]; }
 function lvK(h){ return (h.lv-1)/(MAX_LV-1); }
+function rangeMul(h){ return !h.d.proj ? 1 : RANGE_LV.min + (1-RANGE_LV.min)*lvK(h); }
+function heroRange(h){ return h.d.range * rangeMul(h); }
 function radMul(h){ return Math.min(SKILL_SCALE.radCap, 1 + SKILL_SCALE.rad*lvK(h)); }
 function ccDur(h, base){ return Math.min(SKILL_SCALE.ccCap, base*(1 + SKILL_SCALE.cc*lvK(h))); }
 function fx(o){ if (G.fx.length < 120) G.fx.push(Object.assign({t:0}, o)); }
@@ -311,12 +313,12 @@ function useSkill(h, i) {
     if (i===1) { h.shield = 3 + G.teams[h.team].skill[1]*0.5; burst(h.x, cy(h), '#ffcc33', 20); fx({kind:'bubble', ent:h, life:0.4}); }
     if (i===2) { h.dash = {t:0.38*Math.min(1.3, rm), vx:f*950, dmg:210*m, stun:ccDur(h,0.4), hit:new Set()}; shake=Math.max(shake,4); }
   } else if (k==='chick') {
-    if (i===0) for (const a of [-0.18,0,0.18]) G.proj.push({kind:'arrow', x:h.x+f*20, y:cy(h)-6, vx:Math.cos(a)*f*760, vy:Math.sin(a)*760, team:h.team, owner:h, dmg:72*m, life:0.6, big:true});
+    if (i===0) for (const a of [-0.18,0,0.18]) G.proj.push({kind:'arrow', x:h.x+f*20, y:cy(h)-6, vx:Math.cos(a)*f*760, vy:Math.sin(a)*760, team:h.team, owner:h, dmg:72*m, life:0.6*rangeMul(h), big:true});
     if (i===1) { h.traps = (h.traps||[]).filter(p=>!p.dead); if (h.traps.length>=2) { h.traps[0].dead = true; h.traps.shift(); }
       const tp = {kind:'trap', x:clamp(h.x+f*70, 40, WORLD_W-40), y:h.y, team:h.team, owner:h, dmg:70*m, r:48*rm, slow:ccDur(h,1.0)+0.8, root:ccDur(h,0.3), life:20, arm:0.5}; G.proj.push(tp); h.traps.push(tp); }
     if (i===2) { const cx = h.x + f*260; G.proj.push({kind:'rain', x:cx, y:0, team:h.team, owner:h, dmg:42*m, life:2.2, tick:0, w:320*rm}); }
   } else if (k==='cat') {
-    if (i===0) G.proj.push({kind:'ice', x:h.x+f*20, y:cy(h)-6, vx:f*620, vy:0, team:h.team, owner:h, dmg:115*m, life:0.7, slow:2});
+    if (i===0) G.proj.push({kind:'ice', x:h.x+f*20, y:cy(h)-6, vx:f*620, vy:0, team:h.team, owner:h, dmg:115*m, life:0.7*rangeMul(h), slow:2});
     if (i===1) { let tx = h.x + f*200; const eh = G.teams[1-h.team].hero; if (isAlive(eh) && Math.abs(eh.x-h.x)<380 && Math.sign(eh.x-h.x)===f) tx = eh.x;
       G.proj.push({kind:'circle', x:clamp(tx,40,WORLD_W-40), y:GROUND, team:h.team, owner:h, dmg:60*m, r:105*rm, root:ccDur(h,0.7), delay0:0.7, life:0.7+0.5}); }
     if (i===2) { let tx = h.x + f*280; const eh = G.teams[1-h.team].hero; if (isAlive(eh) && Math.abs(eh.x-h.x)<520) tx = eh.x;
@@ -509,11 +511,11 @@ function aiThink(h, dt) {
       const hold = myT.length ? myT[0] - dir*60 : tm.base.x + dir*500;
       gx = front && (front.x - hold)*dir > -200 ? front.x - dir*(h.d.proj? 110 : 30) : hold;
       const eStruct = G.ents.filter(e=>(e.kind==='tower'||e.kind==='base')&&!e.dead&&e.team!==h.team).sort((a,b)=>(a.x-b.x)*dir)[0];
-      if (eStruct && front && Math.abs(front.x-eStruct.x) < TOWER.range && hpP > 0.4) gx = eStruct.x - dir*(h.d.range*0.8 + eStruct.w/2); // 미니언이 탱킹 중이면 건물 공격
-      if (isAlive(foe) && Math.abs(foe.x-h.x) < 420 && (hpP > foe.hp/foe.maxHp - 0.15)) gx = foe.x - dir*(h.d.proj? h.d.range*0.8 : 30);
+      if (eStruct && front && Math.abs(front.x-eStruct.x) < TOWER.range && hpP > 0.4) gx = eStruct.x - dir*(heroRange(h)*0.8 + eStruct.w/2); // 미니언이 탱킹 중이면 건물 공격
+      if (isAlive(foe) && Math.abs(foe.x-h.x) < 420 && (hpP > foe.hp/foe.maxHp - 0.15)) gx = foe.x - dir*(h.d.proj? heroRange(h)*0.8 : 30);
       if (!isAlive(foe) && front) gx = front.x + dir*20; // 적 영웅이 없으면 밀어붙이기
       const eb = G.teams[1-h.team].base;
-      if (!enemyT.length && hpP > 0.5 && (!isAlive(foe) || Math.abs(foe.x-eb.x) > 500 || hpP > foe.hp/foe.maxHp)) gx = eb.x - dir*(h.d.range*0.7 + 60); // 타워가 없으면 기지 공격
+      if (!enemyT.length && hpP > 0.5 && (!isAlive(foe) || Math.abs(foe.x-eb.x) > 500 || hpP > foe.hp/foe.maxHp)) gx = eb.x - dir*(heroRange(h)*0.7 + 60); // 타워가 없으면 기지 공격
       for (const tx of enemyT) { const safe = tx - dir*(TOWER.range+30); const minionsAtTower = allies.some(a=>Math.abs(a.x-tx)<TOWER.range+40); if (!minionsAtTower && (gx-safe)*dir > 0) gx = safe; }
     }
     ai.gx = clamp(gx, 60, WORLD_W-60); ai.gy = ai.mode==='dragon' ? dragon.y : GROUND;

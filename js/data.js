@@ -27,6 +27,7 @@ const ULT_LV = 6, ULT_UP = [11, 16], SKILL_LV = [1, 3, 6]; // 스킬 해제 레�
 const LV_SKILL = 0.045;                    // 레벨당 스킬 피해 +4.5%
 // 스킬 레벨 성장: 범위 ×(1+rad·k), 군중제어 ×(1+cc·k), k=(레벨-1)/19. 상한: 범위 1.5배, 군중제어 1.5초
 const SKILL_SCALE = { rad:0.5, radCap:1.5, cc:1.2, ccCap:1.5 };
+const RANGE_LV = { min:0.85 };            // 사거리 성장: Lv1 = 85%, Lv20 = 100% (원거리 영웅의 range·스킬1 투사체 거리가 Lv20 최대치, 근접은 고정)
 const SHIELD_DR = 0.35;                    // 꿀 방패 피해 감소율
 // 마나: 최대치 = base + perLv×(레벨-1). 라인에서는 천천히, 기지 근처에서는 빠르게 회복
 const MANA = { base:150, perLv:12, regen:1.4, regenIdle:4, baseRegenPct:0.30 };
