@@ -2,19 +2,19 @@
 const WORLD_W = 4400, VIEW_H = 450, GROUND = 382;
 const HEROES = {
   bear: { name:'뭉치', role:'곰 전사 · 근접', img:'h_bear', color:'#c98a4b',
-    hp:920, hpL:58, atk:68, atkL:5, mana:[45,60,140], range:80, as:0.85, spd:210, armor:0.10, proj:null, lifesteal:0.05,
+    hp:990, hpL:58, atk:72, atkL:5, mana:[45,60,140], range:80, as:0.85, spd:210, armor:0.10, proj:null, lifesteal:0.05,
     skills:[
       {name:'쿵 내려찍기', cd:10, desc:'점프 후 내려찍어 주변 기절 (레벨에 따라 범위·기절 증가)'},
       {name:'꿀 방패', cd:14, desc:'3초간 받는 피해 35% 감소'},
       {name:'곰 돌진', cd:40, desc:'앞으로 돌진하며 적을 밀쳐냄'}]},
   chick:{ name:'삐요', role:'병아리 궁수 · 원거리', img:'h_chick', color:'#f2c230',
-    hp:710, hpL:51, atk:61, atkL:4, mana:[40,50,140], range:300, rangeLv1:0.85, as:0.7, spd:215, armor:0, proj:'arrow',
+    hp:710, hpL:51, atk:59, atkL:4, mana:[40,50,140], range:300, rangeLv1:0.85, as:0.7, spd:215, armor:0, proj:'arrow',
     skills:[
       {name:'삼연발', cd:6, desc:'화살 3발을 부채꼴로 발사'},
       {name:'끈끈이 덫', cd:12, desc:'바닥에 덫 설치 — 밟은 적에게 피해 + 둔화'},
       {name:'화살비', cd:45, desc:'넓은 지역에 화살비'}]},
   cat:  { name:'모모', role:'고양이 마법사 · 마법', img:'h_cat', color:'#8b8fd8',
-    hp:740, hpL:54, atk:72, atkL:4.4, mana:[50,60,140], range:265, as:1.0, spd:205, armor:0, proj:'orb',
+    hp:740, hpL:54, atk:68, atkL:4.4, mana:[50,60,140], range:265, as:1.0, spd:205, armor:0, proj:'orb',
     skills:[
       {name:'얼음 냥펀치', cd:7, desc:'얼음 구체로 피해+둔화'},
       {name:'속박 마법진', cd:13, desc:'잠시 후 마법진 안의 적을 묶음 (이동 불가)'},
@@ -48,7 +48,7 @@ const SHOP = { weapon:[200,300,400,550,700], skill:[250,350,500] };
 const HERO_STRUCT_MUL = 4.0, EXPOSED_BASE_MUL = 2.5, MINION_VS_HERO = 0.5, TOWER_VS_MINION = 0.45, HERO_MINION_MUL = 1.5, MINION_VS_MINION = 1.6, RUSH_TIME = 150; // 2:00 이후 '라인 러쉬 타임' (미니언 강화)
 const RESPAWN = { base:4, perLv:2.2, perMin:1.2 };  // 부활 시간 = base + 레벨×perLv + 경과 분×perMin (초)
 // 후반 건물 약화: time(초) 이후 타워·기지가 받는 피해가 분당 +perMin (교착 방지)
-const OVERTIME = { noRebuild:720, time:1080, pct:0.012 };  // 12분 이후 타워 재건 불가, 18분부터 기지 체력 초당 1.2% 붕괴
+const OVERTIME = { noRebuild:720, time:1000, pct:0.012 };  // 12분 이후 타워 재건 불가, 16분 40초부터 기지 체력 초당 1.2% 붕괴
 const STRUCT_LATE = { time:420, perMin:1.0 };
 const RUSH_STRUCT = 1.6;  // 러쉬 타임 이후 분당 미니언 건물 피해 증가율
 const DRAGON = { hp:1600, first:90, every:90, buff:60, atk:45 };
