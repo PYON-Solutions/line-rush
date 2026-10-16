@@ -94,20 +94,25 @@ function collectMats(obj) {
   return mats;
 }
 
+// 맵 색(MAP.theme)으로 상자/바위/발판 칠하기. 없으면 초원 기본색
+const TH = () => (window.MAP && MAP.theme) || {};
 export function makeCrate() {
-  const root = new THREE.Group();
-  add(root, box(0.7, 0.7, 0.7, 0xb5824e), 0, 0.35, 0);
-  add(root, box(0.72, 0.08, 0.72, 0x7a5230), 0, 0.35, 0);
-  add(root, box(0.08, 0.72, 0.72, 0x7a5230), 0, 0.35, 0);
+  const root = new THREE.Group(), c = TH().crate || [0xb5824e, 0x7a5230];
+  add(root, box(0.7, 0.7, 0.7, c[0]), 0, 0.35, 0);
+  add(root, box(0.72, 0.08, 0.72, c[1]), 0, 0.35, 0);
+  add(root, box(0.08, 0.72, 0.72, c[1]), 0, 0.35, 0);
+  if (TH().crateSnow) add(root, box(0.76, 0.1, 0.76, 0xffffff, { roughness: 0.9 }), 0, 0.74, 0);
   root.userData = { kind: 'crate', mats: collectMats(root) };
   return root;
 }
 
 export function makeRock() {
   const root = new THREE.Group();
-  add(root, sphere(1, 0x9a9aac), 0, 0.35, 0, 0.45, 0.38, 0.4);
-  add(root, sphere(1, 0xb9b9c9), -0.15, 0.5, 0.15, 0.22, 0.18, 0.2);
-  add(root, sphere(1, 0x7ecb5e), 0.1, 0.65, 0.05, 0.2, 0.1, 0.15); // moss
+  const c = TH().rock || [0x9a9aac, 0xb9b9c9, 0x7ecb5e], ice = TH().rockIce, lava = TH().lava;
+  const o = ice ? { roughness: 0.15, metalness: 0.1, opacity: 0.88, emissive: 0x4080a0, ei: 0.15 } : undefined;
+  add(root, sphere(1, c[0], o), 0, 0.35, 0, 0.45, 0.38, 0.4);
+  add(root, sphere(1, c[1], o), -0.15, 0.5, 0.15, 0.22, 0.18, 0.2);
+  add(root, sphere(1, c[2], lava ? { emissive: 0xff5a10, ei: 1.2 } : undefined), 0.1, 0.65, 0.05, 0.2, 0.1, 0.15); // 이끼 / 눈 / 용암
   root.userData = { kind: 'rock', mats: collectMats(root) };
   return root;
 }
@@ -123,14 +128,16 @@ export function makeWard(team) {
 
 export function makePlatform(w, isCenter) {
   const root = new THREE.Group();
-  const depth = 1.4;
+  const depth = 1.4, P = TH().plat || { side: 0x8a5e3a, top: 0x6ecf55, rim: 0xa8f070, under: 0xa7764c }, lava = TH().lava;
   // chunky floating island
-  add(root, box(w, 0.45, depth, 0x8a5e3a), w / 2, -0.15, 0);
-  add(root, box(w + 0.2, 0.22, depth + 0.2, 0x6ecf55), w / 2, 0.15, 0);
-  add(root, box(w + 0.05, 0.08, depth + 0.05, 0xa8f070), w / 2, 0.28, 0);
+  add(root, box(w, 0.45, depth, P.side), w / 2, -0.15, 0);
+  add(root, box(w + 0.2, 0.22, depth + 0.2, P.top), w / 2, 0.15, 0);
+  add(root, box(w + 0.05, 0.08, depth + 0.05, P.rim, lava ? { emissive: 0xff4a10, ei: 0.9 } : undefined), w / 2, 0.28, 0);
   // tapered underside (box scaled)
-  add(root, box(w * 0.7, 0.5, depth * 0.7, 0xa7764c), w / 2, -0.55, 0);
-  if (isCenter) {
+  add(root, box(w * 0.7, 0.5, depth * 0.7, P.under), w / 2, -0.55, 0);
+  if (TH().ice) for (let i = 0; i < Math.max(2, Math.round(w * 1.5)); i++) // 고드름
+    add(root, cone(0.07, 0.4, 0xd8f4ff, { roughness: 0.1, opacity: 0.85 }), 0.15 + (w - 0.3) * (i + 0.5) / Math.max(2, Math.round(w * 1.5)), -0.5 - (i % 3) * 0.08, depth / 2 + 0.05, 1, 1 + (i % 3) * 0.4, 1, Math.PI, 0, 0);
+  if (isCenter && !TH().plat) {
     add(root, sphere(1, 0xb4ffdc, { opacity: 0.4, emissive: 0x88ffcc, ei: 0.25 }), w / 2, 0.35, 0, w * 0.35, 0.1, depth * 0.35);
   }
   root.userData = { kind: 'plat' };

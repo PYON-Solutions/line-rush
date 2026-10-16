@@ -2,7 +2,7 @@
 // 라인 러쉬 헤드리스 밸런스 시뮬레이터 (측정 전용 — 게임 로직/수치는 건드리지 않음)
 // 실제 js/data.js + maps/meadow.js + js/assets.js + js/game.js 를 Node vm 안에서 그대로 실행하고
 // 렌더/입력/오디오만 빈 스텁으로 바꾼다. 양쪽 모두 게임 내장 AI('normal')가 조종, 고정 1/60초 스텝.
-// 사용: node tools/sim.js [경기수/매치업=200] [출력.json] [--cap=1800] [--jobs=8]
+// 사용: node tools/sim.js [경기수/매치업=200] [출력.json] [--cap=1800] [--jobs=8] [--map=meadow|canyon|volcano|snow]
 const fs = require('fs'), path = require('path'), vm = require('vm'), { fork } = require('child_process');
 const ROOT = path.join(__dirname, '..');
 const HEROES = ['bear', 'chick', 'cat'];
@@ -14,7 +14,7 @@ function makeContext() {
   const ls = { lr_matches: '5' };
   const sb = {
     console, Math, JSON, Date, Object, Array, Number, String, Boolean, Infinity, NaN, isFinite, parseFloat, parseInt, Proxy, Map, Set, Symbol, Error,
-    location: { search: '?auto' }, URLSearchParams,
+    location: { search: '?auto' + (process.env.LR_MAP ? '&map=' + process.env.LR_MAP : '') }, URLSearchParams,
     document: { getElementById: () => canvas, createElement: () => canvas, body: { appendChild: noop } },
     localStorage: { getItem: k => (k in ls ? ls[k] : null), setItem: (k, v) => { ls[k] = String(v); } },
     Image: function () { return {}; }, innerWidth: 900, innerHeight: 450, devicePixelRatio: 1,
@@ -22,7 +22,7 @@ function makeContext() {
   };
   sb.window = sb; sb.self = sb;
   const c = vm.createContext(sb);
-  for (const f of ['js/data.js', 'maps/meadow.js', 'js/assets.js', 'js/game.js'])
+  for (const f of ['js/data.js', 'maps/meadow.js', 'maps/canyon.js', 'maps/volcano.js', 'maps/snow.js', 'maps/select.js', 'js/assets.js', 'js/game.js'])
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), c, { filename: f });
   // 계측 훅: 같은 전역 스코프의 스크립트로 함수 래핑(동작은 그대로 위임)
   vm.runInContext(`
@@ -84,6 +84,7 @@ if (process.argv[2] === '--worker') {
   const N = +(process.argv[2] || 200), OUT = process.argv[3] || 'sim-results.json';
   const opt = Object.fromEntries(process.argv.slice(4).map(a => a.replace(/^--/, '').split('=')));
   const cap = +(opt.cap || 1800), jobs = +(opt.jobs || require('os').cpus().length);
+  if (opt.map) process.env.LR_MAP = opt.map; // --map=canyon|volcano|snow (기본 meadow), 워커에 환경변수로 전달
   const queue = [];
   for (let n = 0; n < N; n++) for (const a of HEROES) for (const b of HEROES) queue.push({ k0: a, k1: b, cap });
   const total = queue.length, results = []; const t0 = Date.now();

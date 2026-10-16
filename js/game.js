@@ -100,15 +100,18 @@ function enemiesOf(team, opt={}) {
   return G.ents.filter(e => isAlive(e) && e.team!==team && e.kind!=='ward' && e.kind!=='obst' && !(e.kind==='dragon' && !opt.dragon));
 }
 function cy(e){ return e.y - e.h/2; }
+const DBUF = () => (window.MAP && MAP.dragonBuff) || { spd:1.25, jump:1.15 }; // 맵별 용 버프 (maps/)
+function hasBuff(e){ return e && e.team<2 && G.teams[e.team] && G.teams[e.team].buffT>0; }
 function heroAtk(h){ return h.atk * (1 + 0.12*G.teams[h.team].weapon) * (h.ai && h.ai.diff==='easy' ? 0.7 : 1); }
 function ultTier(h){ return ULT_UP.filter(l=>h.lv>=l).length; }
 function skillMul(h,i){ return (1 + 0.25*G.teams[h.team].skill[i]) * (1 + LV_SKILL*(h.lv-1)) * (i===2 ? 1 + 0.3*ultTier(h) : 1) * (h.ai && h.ai.diff==='easy' ? 0.7 : 1); }
 
 function damage(src, tgt, amt, o={}) {
   if (!isAlive(tgt)) return;
-  if (tgt.kind==='hero') { if (tgt.shield>0) amt*=1-SHIELD_DR; if (src && src.kind==='minion') amt *= MINION_VS_HERO; amt *= 1 - (tgt.d.armor||0); }
+  if (tgt.kind==='hero') { if (tgt.shield>0) amt*=1-SHIELD_DR; if (src && src.kind==='minion') amt *= MINION_VS_HERO; amt *= 1 - (tgt.d.armor||0); if (DBUF().dr && hasBuff(tgt)) amt *= 1 - DBUF().dr; }
   if (tgt.kind==='base' || tgt.kind==='tower') { if (src && src.kind==='minion') { if (src.mt.structMul) amt *= src.mt.structMul; amt *= src.structRush||1; } if (src && src.kind==='hero') amt *= HERO_STRUCT_MUL; if (tgt.kind==='base' && !G.ents.some(t=>t.kind==='tower'&&!t.dead&&t.team===tgt.team)) amt *= EXPOSED_BASE_MUL; }
   if (tgt.kind==='minion' && src) { if (src.kind==='hero') amt *= HERO_MINION_MUL; else if (src.kind==='minion') amt *= MINION_VS_MINION; else if (src.kind==='tower') amt *= TOWER_VS_MINION; }
+  if (DBUF().atk && src && src.kind==='hero' && hasBuff(src)) amt *= 1 + DBUF().atk;
   amt = Math.round(amt);
   tgt.hp -= amt; tgt.flash = 1; tgt.lastDmg = G.t; if (tgt.recall && amt > 0) { tgt.recall = null; if (tgt===G.hero && !tgt.ai) addMsg('공격받아 귀환이 취소되었습니다', '#ffb0a0'); } if (tgt.kind==='dragon' && src && src.team<2) (tgt.aggro=tgt.aggro||{})[src.team]=G.t;
   const big = amt >= 100 || o.crit, vis = onScreen(tgt), heroSrc = src && src.kind==='hero';
@@ -125,6 +128,7 @@ function damage(src, tgt, amt, o={}) {
   if (o.stun) tgt.stun = Math.max(tgt.stun, o.stun);
   if (o.root) { if (tgt.kind==='hero') tgt.root = Math.max(tgt.root||0, o.root); else if (tgt.kind==='minion') tgt.stun = Math.max(tgt.stun, o.root); }
   if (o.slow) tgt.slow = Math.max(tgt.slow, o.slow);
+  if (DBUF().slowHit && src && src.kind==='hero' && hasBuff(src) && tgt.kind!=='base' && tgt.kind!=='tower') tgt.slow = Math.max(tgt.slow, DBUF().slowHit);
   if (o.kb && tgt.kind!=='base' && tgt.kind!=='tower' && tgt.kind!=='dragon' && !(tgt.kind==='minion' && tgt.mt===MINIONS.boss)) { tgt.kbv = o.kb; tgt.vy = Math.min(tgt.vy, -250); }
   if (tgt === G.hero && amt > 40) shake = Math.max(shake, 5);
   if (tgt.hp <= 0) kill(tgt, src);
@@ -246,7 +250,7 @@ function updHero(h, dt) {
     else { h.recall.t -= dt; if (Math.random() < dt*30) G.parts.push({x:h.x+rand(-26,26), y:h.y-rand(0,10), vx:0, vy:-rand(60,140), t:0, life:0.7, c:h.team?'#ffb0a0':'#9fe0ff', r:rand(2,4)});
       if (h.recall.t <= 0) { h.recall = null; burst(h.x, cy(h), '#e8f6ff', 24); h.x = tm.base.x + (h.team?-90:90); h.y = GROUND; h.vy = 0; burst(h.x, cy(h), '#e8f6ff', 30); if (onScreen(h)) sfx('level'); if (h===G.hero) G.camX = clamp(h.x - VW*0.30, 0, Math.max(0, WORLD_W - VW)); } } }
   const buff = tm.buffT>0;
-  const spd = h.d.spd * (buff?1.25:1) * (h.slow>0?0.6:1);
+  const spd = h.d.spd * (buff?DBUF().spd:1) * (h.slow>0?0.6:1);
   if (h.stun>0) h.inputX = 0;
   if (h.dash) { if (!h.dash.snd) { h.dash.snd=1; if (onScreen(h)) sfx('boom',0.4); } h.dash.t -= dt; h.vx = h.dash.vx;
     for (const e of enemiesOf(h.team)) if (!h.dash.hit.has(e) && Math.abs(e.x-h.x)<55 && Math.abs(cy(e)-cy(h))<70) { h.dash.hit.add(e); damage(h,e,h.dash.dmg,{kb:h.face*520, stun:h.dash.stun||0.4, pc:'#ffcf6a'}); shake=Math.max(shake,6);}
@@ -561,7 +565,7 @@ function aiThink(h, dt) {
     if (!easy && tm.wardCd<=0 && Math.random()<0.2) placeWard(h);
   }
 }
-function aiJump(h){ if (h.root>0) return; h.vy = -640*(G.teams[h.team].buffT>0?1.15:1); h.ground=false; h.ai.jumpCd=0.5; }
+function aiJump(h){ if (h.root>0) return; h.vy = -640*(G.teams[h.team].buffT>0?DBUF().jump:1); h.ground=false; h.ai.jumpCd=0.5; }
 function aiShop(h) {
   const tm = G.teams[h.team], easy = h.ai.diff==='easy';
   const order = [];
@@ -646,7 +650,7 @@ function onKey(c) {
   if (c==='Escape') { G.shopOpen=false; G.scoreOpen=false; G.popup=null; }
 }
 function openShop(){ if (!nearBase(G.hero)) { addMsg('상점은 기지 근처에서만! 귀환(B)하거나 기지로 걸어가세요', '#ffd9a0'); return; } G.shopOpen = true; G.popup = null; }
-function doJump(){ const h = G.hero; if (h.respawn>0 || h.stun>0 || h.root>0 || h.ai) return; if (h.ground) { h.vy = -640*(G.teams[0].buffT>0?1.15:1); h.ground=false; for(let i=0;i<6;i++) G.parts.push({x:h.x, y:h.y, vx:rand(-90,90), vy:rand(-60,0), t:0, life:0.35, c:'#e8ffe0', r:3}); } }
+function doJump(){ const h = G.hero; if (h.respawn>0 || h.stun>0 || h.root>0 || h.ai) return; if (h.ground) { h.vy = -640*(G.teams[0].buffT>0?DBUF().jump:1); h.ground=false; for(let i=0;i<6;i++) G.parts.push({x:h.x, y:h.y, vx:rand(-90,90), vy:rand(-60,0), t:0, life:0.35, c:'#e8ffe0', r:3}); } }
 function playerInput(h) {
   let ix = 0;
   if (keys.ArrowLeft||keys.KeyA) ix -= 1; if (keys.ArrowRight||keys.KeyD) ix += 1;
@@ -663,6 +667,7 @@ function endMatch(win) {
   const before = store.get('accxp',0); store.set('accxp', before+gain);
   const lb = accLevelInfo(before).lv, la = accLevelInfo(before+gain).lv;
   if (win) store.set('wins', store.get('wins',0)+1);
+  store.set('coins', store.get('coins',0) + Math.round(gain*0.6)); // 계정 골드 (로비 표시)
   result = { win, gain, lvUp: la>lb, lv:la, time:G.t, kills:G.hero.kills, deaths:G.hero.deaths, cs:G.stats.cs, diff:G.diff };
   addMsg(win ? '적 기지 파괴! 승리!' : '아군 기지가 무너졌습니다...', win?'#ffe066':'#ff8a8a');
   setTimeout(()=>{ scene='result'; sceneT=0; uiRects=[]; }, 2000);

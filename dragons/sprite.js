@@ -3,16 +3,19 @@
 // 리그가 없으면(또는 ?rig=0) 예전처럼 그림 한 장(둥실 + 날갯짓 스쿼시)
 import { makePanel, setFlash, glowSprite, burst, THREE } from '../js/sprites2d.js';
 import { rigOf, loadRigs, makeRigPanel, poseRig, rigTip } from '../js/rig2d.js';
-export const dragonPaths = (name = 'dragon') => [`dragons/${name}.png`];
-export const loadDragonRig = (name = 'dragon') => loadRigs([`dragons/${name}_rig`]);
+// 맵별 용: dragon(붉은 불꽃 용, 화산) · forest(초원) · sand(모래 협곡) · ice(설원) — 색만 바꾼 그림은 dragons/recolor.py
+export const DRAGON_KINDS = ['dragon', 'forest', 'sand', 'ice'];
+export const dragonPaths = () => [`dragons/${(window.MAP && MAP.dragon) || 'dragon'}.png`]; // 한 장 그림은 리그 실패 시 대비용 (현재 맵 것만)
+export const loadDragonRig = () => loadRigs(DRAGON_KINDS.map(n => `dragons/${n}_rig`));
+const FX = () => (window.MAP && MAP.dragonFx) || { glow: 0xb8ffe8, breath: [0xffd060, 0xff8030, 0xff4020, 0xffffff] };
 const ease = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
 export function makeDragon(name = 'dragon') {
   const h = 3.1, rig = rigOf(`dragons/${name}_rig`);
   const m = rig ? makeRigPanel(rig, h, { order: 2.5, shadowW: .7 }) : makePanel(`dragons/${name}.png`, h, { order: 2.5, shadowW: .7 });
-  const g = glowSprite(0xb8ffe8, h * 1.3); g.position.y = h * .55; g.material.opacity = .35; m.add(g);
+  const g = glowSprite(FX().glow, h * 1.3); g.position.y = h * .55; g.material.opacity = .35; m.add(g);
   m.userData.dragon = { h, fx: 1, glow: g, pose: { body: {}, wingN: {}, wingF: {}, tail: {}, head: {}, jaw: {} }, atk: -1, lastCd: 0, tip: new THREE.Vector3(), fired: false, mouth: null };
   const U = m.userData.dragon;
-  if (rig) { U.mouth = glowSprite(0xffa040, h * .4); U.mouth.material.opacity = 0; U.mouth.renderOrder = 2.7; m.userData.panel.pivot.add(U.mouth); }
+  if (rig) { U.mouth = glowSprite(FX().breath[1], h * .4); U.mouth.material.opacity = 0; U.mouth.renderOrder = 2.7; m.userData.panel.pivot.add(U.mouth); }
   m.userData.update = rig ? updateRig : (m, e, dt, t) => {
     const U = m.userData.dragon, P = m.userData.panel, face = e.face < 0 ? -1 : 1;
     U.fx += (face - U.fx) * Math.min(1, dt * 8);
@@ -24,7 +27,7 @@ export function makeDragon(name = 'dragon') {
     setFlash(m, fl);
   };
   m.userData.die = (m, k, start) => {
-    const p = m.position; if (start) burst(p.x, p.y + 2, p.z + .3, { n: 30, color: [0xb8ffe8, 0xffffff, 0x7fe0c0], spd: 4, size: .3, life: 1, add: true });
+    const p = m.position; if (start) burst(p.x, p.y + 2, p.z + .3, { n: 30, color: [FX().glow, 0xffffff, FX().breath[1]], spd: 4, size: .3, life: 1, add: true });
     const P = m.userData.panel;
     if (P.R) { const U = m.userData.dragon, Q = U.pose; Q.t = performance.now() / 1000; Q.body.r = ease(k) * .5; Q.body.dy = -ease(k) * 60; Q.wingN.r = -ease(k) * .5; Q.wingF.r = -ease(k) * .4; Q.head.r = -ease(k) * .4; Q.jaw.r = -.3 * ease(k); poseRig(m, Q); if (U.mouth) U.mouth.material.opacity = 0; }
     else P.pivot.scale.setScalar(Math.max(.05, 1 - k));
@@ -58,7 +61,7 @@ function updateRig(m, e, dt, t) {
     if (jaw > .01 && rigTip(m, 'jaw', U.tip)) { U.mouth.position.copy(U.tip); U.mouth.position.x += .15; const z = U.h * (.25 + jaw * .35); U.mouth.scale.set(z, z, 1); }
     if (!U.fired && k > .3) {
       U.fired = true; const p = m.position, tx = p.x + U.tip.x * U.fx, ty = p.y + P.pivot.position.y + U.tip.y;
-      burst(tx, ty, p.z + .4, { n: 16, color: [0xffd060, 0xff8030, 0xff4020, 0xffffff], spd: 1.6, vx0: 5.5 * face, vy0: -.5, g: 1, size: .32, life: .5, add: true, spreadY: .2 });
+      burst(tx, ty, p.z + .4, { n: 16, color: FX().breath, spd: 1.6, vx0: 5.5 * face, vy0: -.5, g: 1, size: .32, life: .5, add: true, spreadY: .2 });
     }
   }
   U.glow.material.opacity = .25 + .1 * Math.sin(t * 3);
