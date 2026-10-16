@@ -61,7 +61,7 @@ function newMatch(heroKey) {
   const matches = store.get('matches', 0);
   const diff = matches === 0 ? 'easy' : 'normal';
   const keysH = Object.keys(HEROES); const aiKey = keysH.filter(k=>k!==heroKey)[Math.floor(Math.random()*2)];
-  G = { t:0, ents:[], proj:[], parts:[], nums:[], diff, over:false, camX:0, shopOpen:false, popup:null, msg:[], dragonNext:DRAGON.first,
+  G = { t:0, ents:[], proj:[], parts:[], nums:[], diff, over:false, camX:0, shopOpen:false, popup:null, msg:[], dragonNext:(Q.has('dragon') ? +Q.get('dragon') : DRAGON.first), // 디버그: ?dragon=초
     teams:[mkTeam(0), mkTeam(1)], stats:{kills:0,deaths:0,cs:0}, plats:[], obst:[], slots:[] };
   G.plats.push(...MAP.plats(WORLD_W, GROUND)); // maps/
   for (const t of [0,1]) {

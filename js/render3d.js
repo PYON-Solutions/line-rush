@@ -521,14 +521,19 @@ export function createRenderer(container) {
     }
   }
 
+  let dragonLift = 0;
   function setCamera(camX, VW, GROUND, hero, shake) {
     // Hero around 32% from left so right buttons don't cover them
     const lookX = gx(camX + VW * 0.38);
     const heroY = hero && hero.respawn <= 0 ? gy(hero.y, GROUND) + 1.2 : 1.5;
-    camTarget.set(lookX, heroY * 0.5 + 1.0, 0);
+    // 드래곤이 화면 근처에 있으면 카메라를 살짝 올리고 뒤로 빼서 높은 발판 위 드래곤이 잘리지 않게
+    const dr = Gref && Gref.ents && Gref.ents.find(e => e.kind === 'dragon' && !e.dead);
+    const want = dr && Math.abs(gx(dr.x) - lookX) < 9 ? 1 : 0;
+    dragonLift += (want - dragonLift) * 0.04;
+    camTarget.set(lookX, heroY * 0.5 + 1.0 + dragonLift * 2.3, 0);
     // side view, slightly elevated
     // side view: lower elevation, closer for toy-figure readability
-    const ideal = new THREE.Vector3(lookX - 0.5, 5.2, 13.5);
+    const ideal = new THREE.Vector3(lookX - 0.5, 5.2 + dragonLift * 2.0, 13.5 + dragonLift * 3.5);
     camPos.lerp(ideal, 0.12);
     shakeAmt = shake || 0;
     const sx = shakeAmt ? (Math.random() - 0.5) * shakeAmt * 0.04 : 0;

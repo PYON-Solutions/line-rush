@@ -1,14 +1,14 @@
 // 미니언 2D 패널: 통통 튀는 걷기(스쿼시/스트레치), 방향 전환(좌우 반전), 공격 돌진, 피격 플래시, 사망 팝
-// 그림: minions/<원소>/tier0(근접)·tier1(원거리)·tier2(공성/보스).png — 기본 그림은 오른쪽을 봄
+// 그림: minions/<원소>/tier0(근접)·tier1(원거리 마법사)·tier2(공성/보스).png — 그림은 모두 오른쪽을 봄 (왼쪽으로 갈 때 좌우 반전)
 import { makePanel, setFlash, groundDecal, glowSprite, burst, T, TEAM_RGB } from '../js/sprites2d.js';
-const S = 0.028;
 export const ELEM_FX = { water: [0x8fd8ff, 0xffffff, 0x3a9cff], fire: [0xffb040, 0xffe070, 0xff5a2a], rock: [0xc9c3b4, 0x8a8a98, 0xe8e0d0] };
 export const minionPaths = () => { const a = []; for (const e of ['water', 'fire', 'rock']) for (let i = 0; i < 3; i++) a.push(`minions/${e}/tier${i}.png`); return a; };
 
 export function makeMinion(elem, tier, team, mt) {
   const boss = typeof MINIONS !== 'undefined' && mt === MINIONS.boss;
-  const h = (mt ? mt.h : 50) * S * (tier === 0 ? 1.45 : 1.3);
-  const m = makePanel(`minions/${elem}/tier${tier}.png`, h, { order: 3, shadowW: .65 });
+  // 화면 키(월드 단위). 영웅 ≈ 2.2: 근접은 허리 높이, 원거리는 영웅만큼, 공성은 더 크게, 보스는 확실히 크게
+  const h = boss ? 3.7 : [1.2, 2.05, 2.85][tier] || 2;
+  const m = makePanel(`minions/${elem}/tier${tier}.png`, h, { order: 3, shadowW: .6 });
   const ring = groundDecal(T.ring(TEAM_RGB[team] || TEAM_RGB[0]), h * .62, h * .2); m.add(ring);
   let aura = null;
   if (boss) { aura = glowSprite(team ? 0xff7050 : 0x60b8ff, h * 1.5); aura.position.y = h * .5; m.add(aura); }
