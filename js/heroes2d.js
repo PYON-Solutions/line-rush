@@ -22,7 +22,7 @@ export function makePuppetHero(gameKey, team) {
   const plane = new THREE.Mesh(new THREE.PlaneGeometry(PLANE, PLANE), mat);
   plane.position.y = PLANE * (0.5 - (720 - PGY) / 720); // 퍼펫 지면 = 그룹 원점
   plane.renderOrder = 5;
-  const grp = new THREE.Group(); const body = new THREE.Group(); body.add(plane); grp.add(body); grp.userData.body = body;
+  const grp = new THREE.Group(); const body = new THREE.Group(); body.add(plane); grp.add(body); grp.userData.body = body; grp.userData.plane = plane; plane.userData.py0 = plane.position.y;
   // 부드러운 접지 그림자
   const sh = groundDecal(T.shadow, 1.7, 0.6); sh.renderOrder = 1.1; sh.position.y = 0.05; body.add(sh);
   // Lv15+ 팀 색 불꽃 오라
@@ -89,3 +89,56 @@ export function updatePuppet(m, e, dt) {
   P.tex.needsUpdate = true;
 }
 function swap(a, b) { const t = a.splice(0); a.push(...b); b.length = 0; b.push(...t); }
+
+// ---------- 영웅 사망 연출 ----------
+// 맞은 방향으로 튕겨 나가며 움찔 → 공중에서 넘어지며 굴러 바닥에 쿵(살짝 튕김) → 잠깐 누워 있다가 → 팀 색 반짝이로 펑 사라짐
+// D: { t, dir(+1=오른쪽으로 날아감), x0, y0 }  m.position은 호출 쪽에서 매 프레임 x0/y0 기준으로 다시 잡음
+export const DEATH_LEN = 2.3;
+const DEATH_ACT = { dur: 1e9, base: 'idle', pose(o, k, ch) {
+  const t = ch.deathT || 0, R = ch.hero.rest, f = Math.min(1, t / .12), lim = Math.min(1, Math.max(0, (t - .2) / .35));
+  // 움찔(팔 번쩍, 고개 젖힘) → 축 늘어짐
+  o.lean = -.35 * f + .1 * lim; o.head = -.35 * f + .15 * lim;
+  o.shF = lerp(lerp(R.shF, -2.5, f), -1.7, lim); o.elF = lerp(-.5, -.15, lim);
+  o.shB = lerp(lerp(R.shB, -2.1, f), -2.7, lim); o.elB = lerp(-.6, -.2, lim);
+  o.fF = [R.fF[0] + 30 * f, -10 * f * (1 - lim)]; o.fB = [R.fB[0] - 10, 0]; o.hy = R.hy + 8 * f; o.breath = 0;
+} };
+const lerp = (a, b, k) => a + (b - a) * k;
+export function heroDeath(m, e, D, dt) {
+  const P = m.userData.puppet, plane = m.userData.plane; if (!P || !plane) return;
+  const ch = P.ch, t = D.t, dir = D.dir, sc = m.userData.heroScale || 1;
+  if (!D.started) { D.started = true; ch.act = DEATH_ACT; ch.actName = 'death'; ch.at = 0; ch.shield = 0; ch.glow = null; }
+  ch.deathT = t;
+  // 튕겨 나감: 감속하는 이동 + 포물선
+  const air = .62, ta = Math.min(t, air), kx = 1 - Math.pow(1 - ta / air, 2);
+  let x = dir * 1.9 * kx, y = t < air ? 1.25 * Math.sin(Math.PI * ta / air) * (1 - ta / air * .3) : 0;
+  // 회전: 넘어가며 한 바퀴 굴러 등으로 눕기(1.45rad). 착지 후 작은 튕김
+  const lieA = 1.45, spin = Math.PI * 2;
+  let a;
+  if (t < .1) a = -.12 * (t / .1);
+  else if (t < air) { const k = (t - .1) / (air - .1); a = -.12 + (lieA + spin + .12) * (1 - Math.pow(1 - k, 2.2)); }
+  else { const b = t - air; a = lieA + spin + .22 * Math.exp(-b * 9) * Math.sin(b * 22); y = Math.max(0, .28 * Math.exp(-b * 10) * Math.sin(Math.min(Math.PI, b * 14))); x += dir * .25 * (1 - Math.exp(-b * 8)); }
+  const ang = -dir * a;
+  // 평면을 발밑(원점) 기준으로 회전. 누우면 몸 두께만큼 띄움
+  const lie = Math.min(1, Math.max(0, (t - air + .15) / .2));
+  const py0 = plane.userData.py0, c = Math.cos(ang), s = Math.sin(ang);
+  plane.position.set(-s * py0, c * py0 + .42 * lie, 0); plane.rotation.z = ang;
+  m.position.x = D.x0 + x * sc; m.position.y = D.y0 + y;
+  // 퍼펫 그리기 (흰 번쩍 → 0)
+  updatePuppet(m, { face: ch.face, vx: 0, ground: true, flash: t < .18 ? 1 - t / .18 : 0, lv: e.lv, hp: 0, animSeq: P.seq }, dt);
+  // 사라짐: 1.55초부터 반짝이며 흐려짐
+  const fadeS = 1.55, k = Math.max(0, (t - fadeS) / .5);
+  plane.material.opacity = 1 - k;
+  if (m.userData.ring) m.userData.ring.material.opacity = Math.max(0, 1 - t * 2);
+  if (t >= fadeS && !D.poof) {
+    D.poof = true; const p = new THREE.Vector3(); plane.getWorldPosition(p); const tc = P.team ? [0xff5a3a, 0xffd0c0, 0xffffff] : [0x4aa8ff, 0xc8e8ff, 0xffffff];
+    burst(p.x, p.y - .3, p.z + .3, { n: 26, tex: T.star, color: tc, spd: 3.2, size: .42, life: .8, g: -1.5, spread: 1.6, spreadY: .4, add: true });
+    burst(p.x, p.y - .3, p.z + .3, { n: 18, tex: T.glow, color: tc, spd: 1.8, size: .55, life: .7, g: -2, spread: 1.4, add: true });
+  }
+  m.visible = t < DEATH_LEN;
+}
+export function heroDeathReset(m) {
+  const P = m.userData.puppet, plane = m.userData.plane; if (!P || !plane) return;
+  plane.position.set(0, plane.userData.py0, 0); plane.rotation.z = 0; plane.material.opacity = 1;
+  if (m.userData.ring) m.userData.ring.material.opacity = 1;
+  P.ch.act = null; P.ch.deathT = 0; setMode(P.ch, 'idle');
+}

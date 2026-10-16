@@ -877,7 +877,7 @@ function drawHUD() {
   if (tm.buffT>0) txt(`바람 용 버프 ${Math.ceil(tm.buffT)}초`, 12, 100, 12, '#a8ffcf', 'left');
   if (G.teams[1].buffT>0) txt(`적 바람 버프 ${Math.ceil(G.teams[1].buffT)}초`, VW-12, 70, 11, '#ff9a9a', 'right');
   G.msg.forEach((m,i) => { ctx.globalAlpha = clamp(m.t,0,1); txt(m.text, VW/2, 84 + i*20, 15, m.color); }); ctx.globalAlpha=1;
-  if (h.respawn>0) { ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.fillRect(0,0,VW,VIEW_H); txt(`부활까지 ${Math.ceil(h.respawn)}초`, VW/2, VIEW_H/2-20, 28, '#fff'); }
+  if (h.respawn>0) { ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.fillRect(0,0,VW,VIEW_H); txt(`부활까지 ${Math.ceil(h.respawn)}초`, VW/2, VIEW_H*0.7, 30, '#fff'); }
   // 조이스틱
   const jx = joy.active? joy.x0 : 105, jy = joy.active? joy.y0 : 370;
   ctx.globalAlpha = joy.active? 0.75 : 0.45;

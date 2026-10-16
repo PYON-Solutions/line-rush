@@ -1,4 +1,5 @@
 import { createRenderer, assetsReady } from './render3d.js';
+import './announce.js';
 await assetsReady;
 
 const body = document.body;

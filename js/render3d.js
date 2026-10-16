@@ -8,7 +8,7 @@ import { makeMinion, minionPaths, loadMinionRigs } from '../minions/sprite.js';
 import { makeDragon, dragonPaths, loadDragonRig } from '../dragons/sprite.js';
 import { makeBase, basePaths, baseHeight } from '../bases/sprite.js';
 import { makeTower, towerPaths } from '../towers/sprite.js';
-import { heroesReady, makePuppetHero, updatePuppet } from './heroes2d.js';
+import { heroesReady, makePuppetHero, updatePuppet, heroDeath, heroDeathReset, DEATH_LEN } from './heroes2d.js';
 // 영웅은 characters/ 의 2D 퍼펫, 미니언·타워·기지·드래곤은 각 폴더의 2D 페인팅 패널
 export const assetsReady = Promise.all([heroesReady, loadSprites([...minionPaths(), ...towerPaths(), ...basePaths(), ...dragonPaths()]), loadMinionRigs(), loadDragonRig()]);
 
@@ -377,9 +377,16 @@ export function createRenderer(container) {
   function syncEntity(e, GROUND, dt, t) {
     if (e.kind === 'hero' && e.respawn > 0) {
       const m = meshMap.get(e);
-      if (m) m.visible = false;
+      if (!m) return;
+      // 사망 연출 (넉백 → 굴러 눕기 → 반짝이며 사라짐), 끝나면 숨김
+      let D = m.userData.death;
+      if (!D) D = m.userData.death = { t: 0, dir: e.deathDir || -(e.face || 1), x0: m.position.x, y0: m.position.y };
+      D.t += Math.min(0.05, dt || 0.016);
+      if (m.userData.hpSpr) m.userData.hpSpr.visible = false;
+      if (D.t < DEATH_LEN && m.userData.puppet) heroDeath(m, e, D, Math.min(0.05, dt || 0.016)); else m.visible = false;
       return;
     }
+    if (e.kind === 'hero') { const m = meshMap.get(e); if (m && m.userData.death) { m.userData.death = null; heroDeathReset(m); } }
     // rebuild base/tower if stage/lv changed
     if (e.kind === 'base') {
       const st = (Gref && Gref.teams) ? Gref.teams[e.team].stage : 0;
