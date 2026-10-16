@@ -3,6 +3,7 @@
 const PORT = { bear: 'mungchi', chick: 'piyo', cat: 'momo' };
 const portrait = (h) => h && PORT[h.key] ? `characters/${PORT[h.key]}/portrait_${h.team ? 'red' : 'blue'}.png` : null;
 const nameOf = h => (h && typeof HEROES !== 'undefined' && HEROES[h.key]) ? HEROES[h.key].name : '영웅';
+const dimg = () => `dragons/${(window.MAP && MAP.dragon) || 'dragon'}.png`;  // 맵의 드래곤 그림
 const MULTI = ['', '처치!', '더블킬!', '트리플킬!', '쿼드라킬!', '펜타킬!'];
 const STREAK = { 3: '학살 중!', 4: '압도 중!', 5: '전설!', 6: '막을 수 없음!', 7: '신과 같은!' };
 const ICON = {
@@ -94,8 +95,8 @@ function onKill(e, src, G, sfx) {
   } else if (e.kind === 'dragon') {
     const dn = (window.MAP && MAP.dragonName) || '용', bd = ((window.MAP && MAP.dragonBuff && MAP.dragonBuff.desc) || '이동속도 · 점프 강화');
     const kh = src && src.kind === 'hero' ? src : null, team = kh ? kh.team : src && src.team < 2 ? src.team : 2;
-    push({ team, icon: 'swords', left: kh ? pimg(portrait(kh)) : '', right: pimg('dragons/dragon.png'), text: `${dn} 처치!`, sub: team === 0 ? `아군 버프: ${bd}` : team === 1 ? `적이 ${dn}의 힘을 얻었다 (${bd})` : '', snd: snd(['level', 1], ['boom', .6]) });
-    addFeed(team, kh ? portrait(kh) : null, 'swords', 'dragons/dragon.png');
+    push({ team, icon: 'swords', left: kh ? pimg(portrait(kh)) : '', right: pimg(dimg()), text: `${dn} 처치!`, sub: team === 0 ? `아군 버프: ${bd}` : team === 1 ? `적이 ${dn}의 힘을 얻었다 (${bd})` : '', snd: snd(['level', 1], ['boom', .6]) });
+    addFeed(team, kh ? portrait(kh) : null, 'swords', dimg());
   }
 }
 function tick() { ticks++; requestAnimationFrame(tick); try { tickBody(); } catch (err) { console.error('ANN', err); } }

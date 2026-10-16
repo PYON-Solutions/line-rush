@@ -4,8 +4,10 @@ const CACHE = 'line-rush-v' + self.LR_VERSION;
 const PRECACHE = [
   './', 'index.html', 'manifest.json', 'css/style.css',
   'js/version.js', 'js/update.js', 'js/fullscreen.js', 'js/data.js', 'js/assets.js', 'js/bootstrap.js', 'js/render3d.js', 'js/models.js', 'js/heroes2d.js', 'js/game.js',
-  'vendor/three.module.js', 'maps/meadow.js',
+  'vendor/three.module.js', 'maps/meadow.js', 'maps/canyon.js', 'maps/volcano.js', 'maps/snow.js', 'maps/select.js', 'js/lobby.js',
   'js/sprites2d.js', 'js/rig2d.js', 'js/announce.js', 'minions/sprite.js', 'towers/sprite.js', 'bases/sprite.js', 'dragons/sprite.js', 'dragons/lair.js',
+  'dragons/dragon.png', 'dragons/forest.png', 'dragons/sand.png', 'dragons/ice.png',
+  'dragons/dragon_rig/atlas.png', 'dragons/dragon_rig/rig.json', 'dragons/forest_rig/atlas.png', 'dragons/forest_rig/rig.json', 'dragons/sand_rig/atlas.png', 'dragons/sand_rig/rig.json', 'dragons/ice_rig/atlas.png', 'dragons/ice_rig/rig.json',
   'characters/index.js', 'characters/common/index.js', 'characters/common/core.js', 'characters/common/ik.js', 'characters/common/effects.js', 'characters/common/puppet.js',
   'characters/mungchi/rig.js', 'characters/piyo/rig.js', 'characters/momo/rig.js',
   'ui/icons/icon-192.png', 'ui/icons/icon-512.png',
