@@ -28,3 +28,7 @@
 - 스킬은 마나 소모 (영웅별 `mana` 값, `js/data.js`). 레벨 곡선·마나·귀환·대시 수치는 모두 `js/data.js` 상단 상수.
 - 디버그: `?auto` `?speed=N` `?dragon=초` `?lv=N`
 - 중앙 플랫폼 용 둥지 연출: `dragons/lair.js`
+
+## 밸런스 시뮬레이터 (tools/)
+- `node tools/sim.js 100 out.json --jobs=8 --log=sim.log` — 실제 게임 로직/AI로 AI vs AI 전 조합 헤드리스 대전 (수치 무변경, 측정 전용)
+- `python3 tools/analyze.py out.json outdir` — 승률·진영·레벨·K/D 요약 + 승률 히트맵 (matplotlib 필요)
