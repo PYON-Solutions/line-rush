@@ -185,7 +185,7 @@ export function createRenderer(container) {
       const N = 320, pos = new Float32Array(N * 3), geo = new THREE.BufferGeometry();
       for (let i = 0; i < N; i++) { pos[i * 3] = (Math.random() - 0.5) * 50; pos[i * 3 + 1] = Math.random() * 16; pos[i * 3 + 2] = (Math.random() - 0.5) * 14 + 1; }
       geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      const mat = new THREE.PointsMaterial({ map: T.dot || T.glow, color: th.snow ? 0xffffff : 0x9a8a88, size: th.snow ? 0.16 : 0.11, transparent: true, opacity: 0.9, depthWrite: false, alphaTest: 0.05 });
+      const mat = new THREE.PointsMaterial({ map: T.dot || T.glow, color: th.snow ? 0xffffff : 0x9a8a88, size: th.snow ? 0.24 : 0.13, transparent: true, opacity: 0.9, depthWrite: false, alphaTest: 0.05 });
       weather.pts = new THREE.Points(geo, mat); weather.pts.frustumCulled = false; weather.kind = th.snow ? 'snow' : 'ash'; weather.pts.renderOrder = 5; scene.add(weather.pts);
       if (th.ash) { // 불씨 몇 개 (가산)
         const n2 = 50, p2 = new Float32Array(n2 * 3); for (let i = 0; i < n2 * 3; i++) p2[i] = pos[i];
