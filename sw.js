@@ -1,10 +1,10 @@
 // 서비스 워커: 네트워크 우선, 실패 시 캐시 (오프라인 대비). 에셋을 옮기면 PRECACHE 목록도 갱신.
-const CACHE = 'line-rush-v5';
+const CACHE = 'line-rush-v6';
 const PRECACHE = [
   './', 'index.html', 'manifest.json', 'css/style.css',
   'js/fullscreen.js', 'js/data.js', 'js/assets.js', 'js/bootstrap.js', 'js/render3d.js', 'js/models.js', 'js/heroes2d.js', 'js/game.js',
   'vendor/three.module.js', 'maps/meadow.js',
-  'js/sprites2d.js', 'minions/sprite.js', 'towers/sprite.js', 'bases/sprite.js', 'dragons/sprite.js', 'dragons/lair.js',
+  'js/sprites2d.js', 'js/rig2d.js', 'minions/sprite.js', 'towers/sprite.js', 'bases/sprite.js', 'dragons/sprite.js', 'dragons/lair.js',
   'characters/index.js', 'characters/common/index.js', 'characters/common/core.js', 'characters/common/ik.js', 'characters/common/effects.js', 'characters/common/puppet.js',
   'characters/mungchi/rig.js', 'characters/piyo/rig.js', 'characters/momo/rig.js',
   'ui/icons/icon-192.png', 'ui/icons/icon-512.png',

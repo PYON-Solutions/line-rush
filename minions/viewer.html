@@ -1,0 +1,73 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><base href="../"><link rel="icon" href="data:,"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>라인 러쉬 미니언·드래곤 뷰어</title>
+<style>html,body{margin:0;height:100%;background:#7ec8f0;overflow:hidden;font-family:sans-serif}canvas{display:block}
+#ui{position:fixed;left:8px;top:8px;display:flex;gap:5px;flex-wrap:wrap}#ui button{font-size:13px;padding:5px 9px;border-radius:8px;border:0;background:#fffa}#ui button.on{background:#ffd34d;font-weight:bold}
+#st{position:fixed;right:10px;top:8px;background:#0006;color:#fff;padding:4px 10px;border-radius:8px}</style></head><body>
+<div id="ui"></div><div id="st"></div>
+<script type="module">
+// 미니언(원소 3 × 티어 3)과 드래곤을 게임과 같은 코드(minions/sprite.js, dragons/sprite.js)로 재생
+// ?state=cycle|walk|attack|idle|hit|death  ?t=초(그 시각에 멈춤, 스크린샷용)  ?only=fire/0|dragon  ?face=-1  ?rig=0(예전 한 장 그림)
+import * as THREE from './vendor/three.module.js';
+import { loadSprites, tickFx, fxGroup } from './js/sprites2d.js';
+import { makeMinion, minionPaths, loadMinionRigs } from './minions/sprite.js';
+import { makeDragon, dragonPaths, loadDragonRig } from './dragons/sprite.js';
+const Q = new URLSearchParams(location.search);
+const R = new THREE.WebGLRenderer({ antialias: true }); R.setPixelRatio(Math.min(2, devicePixelRatio)); document.body.appendChild(R.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x8fcf6a);
+const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, -50, 50);
+scene.add(fxGroup());
+const STATES = ['cycle', 'walk', 'attack', 'idle', 'hit', 'death'];
+let state = Q.get('state') || 'cycle';
+const ui = document.getElementById('ui');
+for (const s of STATES) { const b = document.createElement('button'); b.textContent = s; b.onclick = () => { state = s; T0 = clock; [...ui.children].forEach(c => c.classList.toggle('on', c === b)); }; if (s === state) b.classList.add('on'); ui.appendChild(b); }
+await Promise.all([loadSprites([...minionPaths(), ...dragonPaths()]), loadMinionRigs(), loadDragonRig()]);
+const only = Q.get('only'), face = +(Q.get('face') || 1);
+const units = [];
+const add = (m, e, x, y, kind) => { m.position.set(x, y, 0); scene.add(m); units.push({ m, e, kind, x, y }); };
+let span = [0, 0, 0, 0];
+if (!only || only !== 'dragon') {
+  const E = ['water', 'fire', 'rock'];
+  E.forEach((el, r) => [0, 1, 2].forEach(ti => {
+    if (only && only !== el + '/' + ti) return;
+    const m = makeMinion(el, ti, r % 2, null), x = only ? 0 : ti * 4.2, y = only ? 0 : (2 - r) * 3.6;
+    add(m, { face, walking: false, swing: 0, flash: 0, cd: 0 }, x, y, 'minion');
+  }));
+}
+if (!only || only === 'dragon') { const d = makeDragon(); add(d, { face, flash: 0, cd: 0 }, only ? 0 : 15.5, only ? -0.2 : 4.2, 'dragon'); }
+function fit() {
+  const W = innerWidth, H = innerHeight; R.setSize(W, H);
+  const uh = only && units[0] && units[0].m.userData.minion ? units[0].m.userData.minion.h : 3;
+  const b = only ? (only === 'dragon' ? [-3, -1, 3, 3.6] : [-uh * .75, -uh * .1, uh * .75, uh * 1.12]) : [-2.3, -.6, 20, 10.8];
+  const cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2, bw = b[2] - b[0], bh = b[3] - b[1], a = W / H;
+  const hw = Math.max(bw / 2, bh * a / 2), hh = hw / a;
+  Object.assign(cam, { left: cx - hw, right: cx + hw, top: cy + hh, bottom: cy - hh }); cam.updateProjectionMatrix();
+}
+addEventListener('resize', fit); fit();
+// 상태 진행: 한 주기 = 걷기 2초 → 공격 2번 → 서 있기 → 피격 2번 → 사망 → 다시 등장
+const CYC = [['walk', 2], ['attack', 1.3], ['idle', 1.1], ['hit', 1.0], ['death', 1.0]];
+let clock = 0, T0 = 0;
+function phaseAt(tt) { if (state !== 'cycle') return [state, tt]; const L = CYC.reduce((a, c) => a + c[1], 0); let x = tt % L; for (const [s, d] of CYC) { if (x < d) return [s, x]; x -= d; } return ['idle', 0]; }
+const dying = new Set();
+function step(dt) {
+  clock += dt; const [s, ts] = phaseAt(clock - T0);
+  for (const u of units) {
+    const e = u.e;
+    if (s === 'death') {
+      if (!dying.has(u)) { dying.add(u); u.dk = 0; u.m.userData.die(u.m, 0, true); }
+      const life = u.kind === 'dragon' ? .6 : .35; u.dk = Math.min(1, u.dk + dt / life); u.m.userData.die(u.m, u.dk, false); u.m.visible = u.dk < 1; continue;
+    }
+    if (dying.has(u)) { dying.delete(u); u.m.visible = true; if (u.m.userData.panel.fmat) u.m.userData.panel.fmat.opacity = 0; if (u.m.userData.panel.uFlash) u.m.userData.panel.uFlash.value = 0; u.m.userData.panel.mat.opacity = 1; if (u.m.userData.shadow) u.m.userData.shadow.material.opacity = .8; }
+    e.walking = s === 'walk';
+    if (s === 'attack') { if ((u.atkT = (u.atkT || 0) - dt) <= 0) { u.atkT = .62; e.swing = 1; e.cd = 1.6; } } else u.atkT = 0;
+    if (u.kind === 'dragon') { e.cd = Math.max(0, e.cd - dt); }
+    if (s === 'hit') { if ((u.hitT = (u.hitT || 0) - dt) <= 0) { u.hitT = .5; e.flash = 1; } } else u.hitT = 0;
+    e.swing = Math.max(0, (e.swing || 0) - dt * 4); e.flash = Math.max(0, e.flash - dt * 5);
+    u.m.userData.update(u.m, e, dt, clock);
+  }
+  tickFx(dt);
+  document.getElementById('st').textContent = s;
+}
+const freeze = Q.has('t') ? +Q.get('t') : null;
+if (freeze !== null) { const n = Math.round(freeze * 60); for (let i = 0; i < n; i++) step(1 / 60); R.render(scene, cam); window.__ready = true; }
+else { let last = performance.now(); R.setAnimationLoop(() => { const now = performance.now(); step(Math.min(.05, (now - last) / 1000)); last = now; R.render(scene, cam); }); window.__ready = true; }
+</script></body></html>

@@ -15,6 +15,8 @@ export function loadSprites(paths) {
   return Promise.all(paths.map(p => TEX[p] ? null : loader.loadAsync(p).then(t => { TEX[p] = prep(t); SIZE[p] = [t.image.width, t.image.height]; })
     .catch(() => console.warn('sprite fail', p))));
 }
+export const texOf = p => TEX[p];
+export function whiteFor(p) { if (!WHITE[p] && TEX[p]) WHITE[p] = whiteOf(TEX[p].image); return WHITE[p]; }
 export const aspect = p => SIZE[p] ? SIZE[p][0] / SIZE[p][1] : 1;
 
 // 둥근 그라디언트/별 등 작은 공용 텍스처
@@ -53,6 +55,7 @@ export function groundDecal(tex, w, d, color) {
 }
 export function setFlash(root, f, alpha = 1) {
   const P = root.userData.panel; f = Math.max(0, Math.min(1, f));
+  if (P.uFlash) { P.uFlash.value = f * 0.85; P.mat.opacity = alpha; return; } // 부위 리그: 셰이더에서 흰색으로 섞음(겹친 부위가 두 번 밝아지지 않게)
   P.fl.visible = f > 0.01; P.fmat.opacity = f * 0.85 * alpha; P.mat.opacity = alpha;
 }
 export function glowSprite(color, size) {
@@ -71,7 +74,7 @@ export function burst(x, y, z, o = {}) {
     const m = s.material; m.map = o.tex || T.dot; m.color.set(Array.isArray(o.color) ? o.color[i % o.color.length] : (o.color ?? 0xffffff));
     m.blending = o.add ? THREE.AdditiveBlending : THREE.NormalBlending; m.needsUpdate = true;
     const a = Math.random() * Math.PI * 2, sp = (o.spd || 3) * (.4 + Math.random() * .6);
-    s.userData = { vx: Math.cos(a) * sp * (o.sx ?? 1), vy: Math.abs(Math.sin(a)) * sp * (o.up ?? 1) + (o.vy0 || 0), vz: (Math.random() - .5) * .5,
+    s.userData = { vx: Math.cos(a) * sp * (o.sx ?? 1) + (o.vx0 || 0), vy: Math.abs(Math.sin(a)) * sp * (o.up ?? 1) + (o.vy0 || 0), vz: (Math.random() - .5) * .5,
       g: o.g ?? 9, t: 0, life: (o.life || .6) * (.7 + Math.random() * .5), sz: (o.size || .18) * (.6 + Math.random() * .7), rot: (Math.random() - .5) * 8 };
     s.position.set(x + (Math.random() - .5) * (o.spread || 0), y + Math.random() * (o.spreadY || 0), z);
     FXG.add(s); LIVE.push(s);

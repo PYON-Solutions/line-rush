@@ -4,13 +4,13 @@ import { makeCrate, makeRock, makeWard, makePlatform, makeProjectile } from './m
 import { makeLair } from '../dragons/lair.js';
 const PLAT_TOP = 0.32; const lairs = [];
 import { loadSprites, fxGroup, tickFx, burst as fxBurst } from './sprites2d.js';
-import { makeMinion, minionPaths } from '../minions/sprite.js';
-import { makeDragon, dragonPaths } from '../dragons/sprite.js';
+import { makeMinion, minionPaths, loadMinionRigs } from '../minions/sprite.js';
+import { makeDragon, dragonPaths, loadDragonRig } from '../dragons/sprite.js';
 import { makeBase, basePaths, baseHeight } from '../bases/sprite.js';
 import { makeTower, towerPaths } from '../towers/sprite.js';
 import { heroesReady, makePuppetHero, updatePuppet } from './heroes2d.js';
 // 영웅은 characters/ 의 2D 퍼펫, 미니언·타워·기지·드래곤은 각 폴더의 2D 페인팅 패널
-export const assetsReady = Promise.all([heroesReady, loadSprites([...minionPaths(), ...towerPaths(), ...basePaths(), ...dragonPaths()])]);
+export const assetsReady = Promise.all([heroesReady, loadSprites([...minionPaths(), ...towerPaths(), ...basePaths(), ...dragonPaths()]), loadMinionRigs(), loadDragonRig()]);
 
 const GROUND_Y = 0;
 const SCALE = 0.028; // game units → world units (hero ~72px → ~2 units)

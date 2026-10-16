@@ -1,0 +1,1 @@
+{"src":"tier1.png","w":356,"h":482,"aw":1024,"ah":512,"parts":[{"name":"body","role":"jiggle","rect":[185,2,325,265],"at":[31,217],"pivot":[178.0,482],"grid":[3,5]},{"name":"head","role":"head","rect":[514,2,195,205],"at":[129,24],"pivot":[250,222],"grid":[3,3]},{"name":"weapon","role":"staff","rect":[2,2,179,482],"at":[0,0],"pivot":[134,280],"grid":[1,1],"tip":[70,75]}]}
