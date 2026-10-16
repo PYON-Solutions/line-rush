@@ -8,13 +8,13 @@ const HEROES = {
       {name:'꿀 방패', cd:14, desc:'3초간 받는 피해 35% 감소'},
       {name:'곰 돌진', cd:40, desc:'앞으로 돌진하며 적을 밀쳐냄'}]},
   chick:{ name:'삐요', role:'병아리 궁수 · 원거리', img:'h_chick', color:'#f2c230',
-    hp:730, hpL:52, atk:64, atkL:4, mana:[40,50,140], range:300, as:0.7, spd:215, armor:0, proj:'arrow',
+    hp:720, hpL:52, atk:62, atkL:4, mana:[40,50,140], range:300, as:0.7, spd:215, armor:0, proj:'arrow',
     skills:[
       {name:'삼연발', cd:6, desc:'화살 3발을 부채꼴로 발사'},
       {name:'끈끈이 덫', cd:12, desc:'바닥에 덫 설치 — 밟은 적에게 피해 + 둔화'},
       {name:'화살비', cd:45, desc:'넓은 지역에 화살비'}]},
   cat:  { name:'모모', role:'고양이 마법사 · 마법', img:'h_cat', color:'#8b8fd8',
-    hp:660, hpL:48, atk:66, atkL:4.4, mana:[50,60,140], range:265, as:1.0, spd:205, armor:0, proj:'orb',
+    hp:700, hpL:50, atk:70, atkL:4.4, mana:[50,60,140], range:265, as:1.0, spd:205, armor:0, proj:'orb',
     skills:[
       {name:'얼음 냥펀치', cd:7, desc:'얼음 구체로 피해+둔화'},
       {name:'속박 마법진', cd:13, desc:'잠시 후 마법진 안의 적을 묶음 (이동 불가)'},
