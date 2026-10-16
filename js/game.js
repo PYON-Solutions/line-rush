@@ -117,7 +117,7 @@ function skillMul(h,i){ return (1 + 0.25*G.teams[h.team].skill[i]) * (1 + LV_SKI
 function damage(src, tgt, amt, o={}) {
   if (!isAlive(tgt)) return;
   if (tgt.kind==='hero') { if (tgt.shield>0) amt*=1-SHIELD_DR; if (src && src.kind==='minion') amt *= MINION_VS_HERO; amt *= 1 - (tgt.d.armor||0); if (DBUF().dr && hasBuff(tgt)) amt *= 1 - DBUF().dr; }
-  if (tgt.kind==='base' || tgt.kind==='tower') { if (src && src.kind==='minion') { if (src.mt.structMul) amt *= src.mt.structMul; amt *= src.structRush||1; } if (src && src.kind==='hero') amt *= HERO_STRUCT_MUL; if (tgt.kind==='base' && !G.ents.some(t=>t.kind==='tower'&&!t.dead&&t.team===tgt.team)) amt *= EXPOSED_BASE_MUL; }
+  if (tgt.kind==='base' || tgt.kind==='tower') { if (src && src.kind==='minion') { if (src.mt.structMul) amt *= src.mt.structMul; amt *= src.structRush||1; } if (src && src.kind==='hero') amt *= HERO_STRUCT_MUL; if (tgt.kind==='base' && !G.ents.some(t=>t.kind==='tower'&&!t.dead&&t.team===tgt.team)) amt *= EXPOSED_BASE_MUL;  if (G.t > STRUCT_LATE.time) amt *= 1 + STRUCT_LATE.perMin*(G.t-STRUCT_LATE.time)/60; }
   if (tgt.kind==='minion' && src) { if (src.kind==='hero') amt *= HERO_MINION_MUL; else if (src.kind==='minion') amt *= MINION_VS_MINION; else if (src.kind==='tower') amt *= TOWER_VS_MINION; }
   if (DBUF().atk && src && src.kind==='hero' && hasBuff(src)) amt *= 1 + DBUF().atk;
   amt = Math.round(amt);
@@ -156,7 +156,7 @@ function kill(e, src) {
     const foe = G.teams[1-e.team].hero; if (isAlive(foe) && Math.abs(foe.x-e.x) < 750) giveXp(foe, e.mt.xp);
   } else if (e.kind==='hero') {
     G.parts.push({pop:true, img:HEROES[e.key].img+(e.team?'_r':''), x:e.x, y:e.y, h:78, face:e.face, t:0, life:0.5}); G.hitstop = 0.12; sfx('boom',0.8);
-    e.respawn = RESPAWN.base + e.lv*RESPAWN.perLv; e.deaths++; e.pend = null; e.recall=null; e.slow=e.stun=0; e.shield=0; e.dash=null; e.slam=null; e.kbv=0; e.root=0; e.atkLock=0;
+    e.respawn = RESPAWN.base + e.lv*RESPAWN.perLv + (G.t/60)*(RESPAWN.perMin||0); e.deaths++; e.pend = null; e.recall=null; e.slow=e.stun=0; e.shield=0; e.dash=null; e.slam=null; e.kbv=0; e.root=0; e.atkLock=0;
     const k = G.teams[1-e.team].hero; k.kills++;
     gold(1-e.team, ECON.heroKill, k.x, k.y-90); giveXp(k, 120 + e.lv*25);
     addMsg(e===G.hero ? `처치당했습니다! ${Math.ceil(e.respawn)}초 후 부활` : '적 영웅 처치! +'+ECON.heroKill+'G', e===G.hero?'#ff8a8a':'#ffe066');
@@ -182,15 +182,16 @@ function burst(x,y,c,n){ for(let i=0;i<n;i++){ const a=rand(0,6.28), s=rand(60,3
 
 // ================= 업데이트 =================
 function update(dt) {
-  G.t += dt;
-  for (const t of [0,1]) { const tm=G.teams[t]; tm.gold += ECON.passive*dt; tm.passive = (tm.passive||0) + ECON.passive*dt; tm.buffT=Math.max(0,tm.buffT-dt); tm.wardCd=Math.max(0,tm.wardCd-dt);
+  G.t += dt; G.tick = (G.tick||0)+1;
+  const flip = G.tick % 2 === 1; // 진영 편향 방지: 웨이브 생성·엔티티·투사체 처리 순서를 매 프레임 번갈아
+  for (const t of (flip ? [1,0] : [0,1])) { const tm=G.teams[t]; tm.gold += ECON.passive*dt; tm.passive = (tm.passive||0) + ECON.passive*dt; tm.buffT=Math.max(0,tm.buffT-dt); tm.wardCd=Math.max(0,tm.wardCd-dt);
     G.waveT[t] -= dt; if (G.waveT[t] <= 0) { G.waveT[t] = BASE.wave[tm.stage]; spawnWave(t); } }
   if (G.t >= G.dragonNext) {
     G.dragonNext = Infinity; const p = G.plats.find(p=>p.center);
     const d = ent({kind:'dragon', team:2, x:WORLD_W/2, y:p.y-6, w:110, h:95, hp:Math.round(DRAGON.hp + G.t*4)}); d.cd=2; d.homeY=p.y-6;
     addMsg(`${DN()}이 나타났다! (중앙 위 발판)`, '#a8ffcf');
   }
-  G.tick = (G.tick||0)+1; const order = G.tick % 2 ? G.ents : G.ents.slice().reverse(); // 매 프레임 갱신 순서를 뒤집어 진영 편향 제거
+  const order = flip ? G.ents.slice().reverse() : G.ents; // 매 프레임 갱신 순서를 뒤집어 진영 편향 제거
   for (const e of order) {
     if (e.dead) continue;
     e.flash = Math.max(0, e.flash - dt*5); e.anim += dt; if (e.squash) e.squash = Math.max(0, e.squash - dt*7);
@@ -203,6 +204,14 @@ function update(dt) {
     else if (e.kind==='dragon') updDragon(e, dt);
     else if (e.kind==='ward') { e.life -= dt; if (e.life<=0) e.dead = true; }
   }
+  // 연장전: noRebuild 이후 타워 재건 불가, time 이후 양쪽 기지가 서서히 무너짐 (먼저 무너지는 쪽 패배)
+  if (G.t >= OVERTIME.noRebuild && !G.otMsg1) { G.otMsg1 = true; addMsg('후반전! 이제 타워를 다시 지을 수 없습니다', '#ffb347'); }
+  if (G.t >= OVERTIME.time) { if (!G.otMsg2) { G.otMsg2 = true; addMsg('연장전! 양쪽 기지가 무너지기 시작합니다', '#ff8a6a'); }
+    const B = [0,1].map(t=>G.teams[t].base); for (const b of B) b.hp -= b.maxHp*OVERTIME.pct*dt;
+    if (!G.over && B.some(b=>b.hp<=0)) { // 동시에 무너지면: 체력 비율 → 남은 타워 → 처치 수 → 무작위 순으로 패자 결정 (진영 편향 없음)
+      const sc = t => [B[t].hp/B[t].maxHp, G.ents.filter(e=>e.kind==='tower'&&!e.dead&&e.team===t).length, G.teams[t].hero.kills, Math.random()];
+      const a0 = sc(0), a1 = sc(1); let lose = 0; for (let i=0;i<4;i++) { if (a0[i]!==a1[i]) { lose = a0[i] < a1[i] ? 0 : 1; break; } }
+      B[1-lose].hp = Math.max(1, B[1-lose].hp); kill(B[lose], null); } }
   if (!G.rushMsg && G.t >= RUSH_TIME) { G.rushMsg = true; addMsg('라인 러쉬 타임! 미니언이 점점 강해집니다!', '#ffb347'); }
   for (const s of G.slots) if (s.ruinT>0) s.ruinT -= dt;
   updProj(dt);
@@ -306,7 +315,10 @@ function pickTarget(h, face) {
 function canUlt(h){ return h.lv >= ULT_LV; }
 function skillOpen(h,i){ return h.lv >= SKILL_LV[i]; }
 function lvK(h){ return (h.lv-1)/(MAX_LV-1); }
-function rangeMul(h){ return !h.d.proj ? 1 : RANGE_LV.min + (1-RANGE_LV.min)*lvK(h); }
+// 직선 스킬 조준: 앞쪽 적(영웅 우선)을 향한 각도 (발판 위/아래도 맞도록, ±0.6rad)
+function aimAng(h, f){ let best=null, bd=1e9; for (const e of enemiesOf(h.team, {dragon:true})) { const dx=(e.x-h.x)*f; if (dx<10 || dx>480) continue; const d = dx + (e.kind==='hero'?0:200); if (d<bd) { bd=d; best=e; } }
+  return best ? clamp(Math.atan2(cy(best)-(cy(h)-6), Math.abs(best.x-h.x)), -0.6, 0.6) : 0; }
+function rangeMul(h){ const m = h.d.rangeLv1 ?? 1; return m + (1-m)*lvK(h); }
 function heroRange(h){ return h.d.range * rangeMul(h); }
 function radMul(h){ return Math.min(SKILL_SCALE.radCap, 1 + SKILL_SCALE.rad*lvK(h)); }
 function ccDur(h, base){ return Math.min(SKILL_SCALE.ccCap, base*(1 + SKILL_SCALE.cc*lvK(h))); }
@@ -331,14 +343,14 @@ function useSkill(h, i) {
     if (i===1) { h.shield = 3 + G.teams[h.team].skill[1]*0.5; burst(h.x, cy(h), '#ffcc33', 20); fx({kind:'bubble', ent:h, life:0.4}); }
     if (i===2) { h.dash = {t:0.38*Math.min(1.3, rm), vx:f*950, dmg:210*m, stun:ccDur(h,0.4), hit:new Set()}; shake=Math.max(shake,4); }
   } else if (k==='chick') {
-    if (i===0) later(h, relT(h,'skill1'), () => { if (h.respawn>0) return; for (const a of [-0.18,0,0.18]) G.proj.push({kind:'arrow', x:h.x+f*20, y:cy(h)-6, vx:Math.cos(a)*f*760, vy:Math.sin(a)*760, team:h.team, owner:h, dmg:72*m, life:0.6*rangeMul(h), big:true}); });
+    if (i===0) later(h, relT(h,'skill1'), () => { if (h.respawn>0) return; const a0 = aimAng(h, f); for (const da of [-0.18,0,0.18]) { const a = a0+da; G.proj.push({kind:'arrow', x:h.x+f*20, y:cy(h)-6, vx:Math.cos(a)*f*760, vy:Math.sin(a)*760, team:h.team, owner:h, dmg:72*m, life:0.6*rangeMul(h), big:true}); } });
     if (i===1) { h.traps = (h.traps||[]).filter(p=>!p.dead); if (h.traps.length>=2) { h.traps[0].dead = true; h.traps.shift(); }
       const tp = {kind:'trap', x:clamp(h.x+f*70, 40, WORLD_W-40), y:h.y, team:h.team, owner:h, dmg:70*m, r:48*rm, slow:ccDur(h,1.0)+0.8, root:ccDur(h,0.3), life:20, arm:0.5}; h.traps.push(tp); later(h, relT(h,'skill2'), () => { if (!tp.dead) G.proj.push(tp); }); }
     if (i===2) { const cx = h.x + f*260; later(h, relT(h,'ult'), () => G.proj.push({kind:'rain', x:cx, y:0, team:h.team, owner:h, dmg:42*m, life:2.2, tick:0, w:320*rm})); }
   } else if (k==='cat') {
-    if (i===0) later(h, relT(h,'skill1'), () => { if (h.respawn>0) return; G.proj.push({kind:'ice', x:h.x+f*20, y:cy(h)-6, vx:f*620, vy:0, team:h.team, owner:h, dmg:115*m, life:0.7*rangeMul(h), slow:2}); });
-    if (i===1) { let tx = h.x + f*200; const eh = G.teams[1-h.team].hero; if (isAlive(eh) && Math.abs(eh.x-h.x)<380 && Math.sign(eh.x-h.x)===f) tx = eh.x;
-      const d2 = relT(h,'skill2'); later(h, d2, () => G.proj.push({kind:'circle', x:clamp(tx,40,WORLD_W-40), y:GROUND, team:h.team, owner:h, dmg:60*m, r:105*rm, root:ccDur(h,0.7), delay0:0.7-d2, life:0.7-d2+0.5})); }
+    if (i===0) later(h, relT(h,'skill1'), () => { if (h.respawn>0) return; const a = aimAng(h, f); G.proj.push({kind:'ice', x:h.x+f*20, y:cy(h)-6, vx:f*620*Math.cos(a), vy:620*Math.sin(a), team:h.team, owner:h, dmg:115*m, life:0.7*rangeMul(h), slow:2}); });
+    if (i===1) { let tx = h.x + f*200; const eh = G.teams[1-h.team].hero; let ty = h.y; if (isAlive(eh) && Math.abs(eh.x-h.x)<380 && Math.sign(eh.x-h.x)===f) { tx = eh.x; ty = eh.y; }
+      const d2 = relT(h,'skill2'); later(h, d2, () => G.proj.push({kind:'circle', x:clamp(tx,40,WORLD_W-40), y:ty, team:h.team, owner:h, dmg:60*m, r:105*rm, root:ccDur(h,0.7), delay0:0.7-d2, life:0.7-d2+0.5})); }
     if (i===2) { let tx = h.x + f*280; const eh = G.teams[1-h.team].hero; if (isAlive(eh) && Math.abs(eh.x-h.x)<520) tx = eh.x;
       const d3 = relT(h,'ult'); fx({kind:'mark', x:tx, life:0.8, r:165*rm, c:'#ffe066'}); later(h, d3, () => G.proj.push({kind:'star', x0:tx-f*260, tx, ty:GROUND, team:h.team, owner:h, dmg:360*m, life:0.8-d3, t0:0.8-d3, r:165*rm, stun:ccDur(h,0.4)})); }
   }
@@ -411,7 +423,7 @@ function updDragon(d, dt) {
 }
 
 function updProj(dt) {
-  for (const p of G.proj) {
+  for (const p of (G.tick % 2 ? G.proj.slice().reverse() : G.proj)) {
     if (p.delay>0) { p.delay -= dt; continue; }
     if (p.kind==='trap') { p.life -= dt; p.arm -= dt; if (p.life<=0 || p.owner.respawn>0 && false) p.dead = true;
       if (p.arm<=0) for (const e of enemiesOf(p.team)) if ((e.kind==='hero'||e.kind==='minion') && Math.abs(e.x-p.x) < p.r+e.w/2 && Math.abs(e.y-p.y) < 40) {
@@ -481,7 +493,7 @@ function buy(team, id) {
 }
 function towerOptions(slot) {
   const t = slot.tower;
-  if (!t) return slot.ruinT>0 ? [] : [{id:'build', name:'타워 건설', cost:TOWER.cost[0]}];
+  if (!t) return slot.ruinT>0 || G.t >= OVERTIME.noRebuild ? [] : [{id:'build', name:'타워 건설', cost:TOWER.cost[0]}];
   if (t.lv===1) return [{id:'up', name:'Lv.2 (화살 2발)', cost:TOWER.cost[1]}];
   if (t.lv===2) return [{id:'up', name:'Lv.3 (부채꼴 3발)', cost:TOWER.cost[2]}];
   if (t.lv===3) return [{id:'rapid', name:'연발 화살 타워', cost:TOWER.cost[3]}, {id:'cannon', name:'대포 타워', cost:TOWER.cost[3]}];
