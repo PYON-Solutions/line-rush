@@ -13,4 +13,4 @@
 - `select.js` : 맵 순서(`MAP_ORDER`), 현재 맵 결정, `setMap(키)` (로비에서 호출 → 3D 배경 다시 만듦). 초원 용/둥지 설정도 여기.
 - 맵의 `theme` = 3D 배경 (하늘 그라데이션·안개·조명, 땅 색, 언덕 모양 `round|mesa|peaks|volcano`, 나무 `round|cactus|pine|deadtree`, `snow`/`ash` 날씨, `lava` 용암 강, `ice` 얼음판·고드름, 발판/바위/상자 색, `lair` 둥지 색). 그리는 쪽은 `js/render3d.js` buildTheme.
 - `dragonBuff` = { spd, jump, dr(받는 피해 감소), atk(영웅 공격력), slowHit(초), desc }. `dragonFx` = 용 빛/입김 색.
-- 발판은 반드시 좌우 대칭(빨강 = `W - x - w`), 높이 차 ≤ 110px (점프 최고 ≈ 124px).
+- 발판은 반드시 좌우 대칭(빨강 = `W - x - w`), 높이 차 ≤ 110px (점프 최고 ≈ 124px). 높은 발판으로 가는 디딤 발판은 위 발판 **아래로 40px 이상 겹치게** (발판은 아래에서 통과 → 그 밑에서 제자리 점프로 올라감. 옆으로 110px 이상 떨어지면 달리기 점프로도 거의 못 닿음). AI는 `aiClimb`(js/game.js)로 이 경로를 따라감.

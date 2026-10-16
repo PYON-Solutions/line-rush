@@ -5,7 +5,7 @@ MAPS.meadow = {
   name: '초원 라인',
   // 발판: center:true 인 발판 위에 드래곤이 등장
   plats: (W, G) => { const C = W / 2; return [
-    { x: C - 140, w: 280, y: G - 215, center: true }, { x: C - 470, w: 220, y: G - 110 }, { x: C + 250, w: 220, y: G - 110 },
+    { x: C - 140, w: 280, y: G - 215, center: true }, { x: C - 320, w: 220, y: G - 110 }, { x: C + 100, w: 220, y: G - 110 }, // 중앙 발판 아래로 40px 겹침 → 그 밑에서 점프해 올라감
     { x: 1050, w: 200, y: G - 115 }, { x: W - 1250, w: 200, y: G - 115 }]; },
   baseX: 230,                                             // 기지 위치 (팀0 기준, 팀1은 W-x)
   towerSlots: [[560, true], [880, false], [1220, true], [1560, false]], // [x, 비어있음?] 팀0 기준

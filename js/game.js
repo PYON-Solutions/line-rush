@@ -273,9 +273,9 @@ function updHero(h, dt) {
   for (const o of G.obst) if (!o.dead && h.y > o.y-o.h+2 && Math.abs(nx-o.x) < (o.w+h.w)/2 && Math.abs(nx-o.x) < Math.abs(h.x-o.x)) { nx = h.x; h.blocked = true; }
   h.x = nx;
   const wasGround = h.ground; h.ground = physics(h, dt);
-  if (h.ground && !wasGround) { h.land = 1; if (h.slam) doSlam(h); }
+  if (h.ground && !wasGround) { h.land = 1; h.climbAir = false; if (h.slam) doSlam(h); }
   h.land = Math.max(0,(h.land||0)-dt*4);
-  if (h.atkT <= 0 && h.stun<=0 && !h.dash) {
+  if (h.atkT <= 0 && h.stun<=0 && !h.dash && !h.climbAir) {  // AI가 발판 사이를 뛰어넘는 중엔 공격 안 함 (공격 멈칫 때문에 못 닿음)
     // 바라보는 방향의 적만 공격. 뒤쪽 적은 '멈춰 있을 때'만 돌아서서 공격 (뒷걸음질 사격 금지)
     const tgt = pickTarget(h, h.inputX ? h.face : 0);
     if (tgt) { h.atkT = h.d.as; h.atkLock = Math.min(0.3, h.d.as*0.4); h.face = Math.sign(tgt.x-h.x)||h.face; h.swing = 1; h.combo = (h.combo||0)%3 + 1; h.animAct = (h.key==='bear' && h.combo===3) ? 'basic3' : 'basic'; h.animSeq=(h.animSeq||0)+1;
@@ -521,7 +521,7 @@ function aiThink(h, dt) {
     else if (ai.mode==='retreat' && (hpP < 0.75 || G.t-(h.lastDmg||0) < 2) && !(nearBase(h) && hpP > 0.9)) ai.mode = 'retreat';
     else if (ai.mode==='home' && nearBase(h) && (hpP < 0.9 || mpP < 0.75)) ai.mode = 'home';   // 기지에서 회복·쇼핑
     else if (!nearBase(h) && (wantShop || (mpP < 0.12 && hpP < 0.6)) && !(foeNear && hpP > foe.hp/foe.maxHp + 0.2)) ai.mode = 'home';
-    else if (dragon && !easy && h.lv>=ULT_LV && (ai.mode==='dragon' ? hpP>0.45 : hpP>0.8) && (ai.dragonT||0) < 25 && (!isAlive(foe) || Math.abs(foe.x-dragon.x)>900)) { ai.mode='dragon'; ai.dragonT=(ai.dragonT||0)+ai.thinkStep; }
+    else if (dragon && !easy && h.lv>=ULT_LV && (ai.mode==='dragon' ? hpP>0.45 : hpP>0.75) && (ai.dragonT||0) < 25 && (!isAlive(foe) || Math.abs(foe.x-dragon.x)>900 || (ai.mode==='dragon' && hpP > foe.hp/foe.maxHp) || dragon.hp < dragon.maxHp*0.35)) { ai.mode='dragon'; ai.dragonT=(ai.dragonT||0)+ai.thinkStep; }
     else ai.mode = 'lane';
     let gx;
     if (ai.mode==='retreat' || ai.mode==='home') { gx = tm.base.x;
@@ -541,17 +541,19 @@ function aiThink(h, dt) {
       if (!enemyT.length && hpP > 0.5 && (!isAlive(foe) || Math.abs(foe.x-eb.x) > 500 || hpP > foe.hp/foe.maxHp)) gx = eb.x - dir*(heroRange(h)*0.7 + 60); // 타워가 없으면 기지 공격
       for (const tx of enemyT) { const safe = tx - dir*(TOWER.range+30); const minionsAtTower = allies.some(a=>Math.abs(a.x-tx)<TOWER.range+40); if (!minionsAtTower && (gx-safe)*dir > 0) gx = safe; }
     }
-    ai.gx = clamp(gx, 60, WORLD_W-60); ai.gy = ai.mode==='dragon' ? dragon.y : GROUND;
+    ai.gx = clamp(gx, 60, WORLD_W-60); ai.gy = ai.mode==='dragon' ? ((G.plats.find(p=>p.center)||{}).y ?? dragon.y) : GROUND;
+    // 라인 발판 활용: 원거리 영웅은 싸우는 곳 근처 발판(높은 곳)에 올라가 쏘고, 근접은 적 영웅이 발판 위에 있으면 따라 올라감
+    if (ai.mode==='lane') {
+      const fUp = isAlive(foe) && foe.ground && foe.y < GROUND-40 && Math.abs(foe.x-h.x) < 500 ? G.plats.find(p=>Math.abs(foe.y-p.y)<2 && foe.x>p.x-8 && foe.x<p.x+p.w+8) : null;
+      const lp = fUp && !h.d.proj ? fUp : h.d.proj && (hpP > 0.45) ? G.plats.filter(p=>!p.center && Math.abs(p.x+p.w/2-ai.gx) < p.w/2+60).sort((a,b)=>Math.abs(a.x+a.w/2-ai.gx)-Math.abs(b.x+b.w/2-ai.gx))[0] : null;
+      if (lp) { ai.gx = clamp(fUp && !h.d.proj ? foe.x : ai.gx, lp.x+24, lp.x+lp.w-24); ai.gy = lp.y; }
+    }
   }
   const dx = ai.gx - h.x;
   h.inputX = Math.abs(dx) > 25 ? Math.sign(dx) : 0;
-  if (h.ground && ai.jumpCd<=0) {
-    if (h.blocked) aiJump(h);
-    else if (ai.mode==='dragon' && h.y > ai.gy + 40) {
-      const reach = G.plats.filter(p => p.y < h.y-20 && h.y - p.y < 125);
-      const p = reach.sort((a,b)=>Math.abs(a.x+a.w/2-ai.gx)-Math.abs(b.x+b.w/2-ai.gx))[0];
-      if (p) { const px = clamp(h.x, p.x+20, p.x+p.w-20); if (Math.abs(px-h.x) < 30) aiJump(h); else h.inputX = Math.sign(px-h.x); }
-    }
+  if (h.ground) {
+    if (h.blocked && ai.jumpCd<=0) aiJump(h);
+    else if (h.y > ai.gy + 30) aiClimb(h, ai, ai.jumpCd<=0);  // 이동은 항상 경로대로, 점프는 쿨이 끝났을 때만
   }
   h.blocked = false;
   if (ai.skillT <= 0) {
@@ -583,6 +585,31 @@ function aiThink(h, dt) {
     if (!used) h.face = of;
     if (!easy && tm.wardCd<=0 && Math.random()<0.2) placeWard(h);
   }
+}
+// 발판 오르기: 목표 발판(ai.gx, ai.gy)까지 한 번에 닿지 않으면 중간 발판을 거침.
+// 발판 아래면 제자리 점프, 옆이면 가장자리까지 걸어가 달리며 점프 (점프 최고 ≈124px, 공중 이동 ≈ 속도×0.5초)
+const JUMP_UP = 115;
+function platAt(x, y){ return G.plats.find(p => Math.abs(y-p.y) < 3 && x > p.x-8 && x < p.x+p.w+8); }
+function aiClimb(h, ai, canJump) {
+  const tgt = platAt(ai.gx, ai.gy) || G.plats.filter(p=>Math.abs(p.y-ai.gy)<3).sort((a,b)=>Math.abs(a.x+a.w/2-ai.gx)-Math.abs(b.x+b.w/2-ai.gx))[0];
+  if (!tgt) return;
+  let next = tgt;
+  if (h.y - tgt.y > JUMP_UP) { // 중간 발판: 지금 닿고, 거기서 목표에 닿는 것 중 가까운 것
+    const mids = G.plats.filter(p => p !== tgt && p.y < h.y-20 && h.y-p.y <= JUMP_UP && p.y-tgt.y <= JUMP_UP && p.y > tgt.y);
+    next = mids.sort((a,b)=>Math.abs(a.x+a.w/2-h.x)+Math.abs(a.x+a.w/2-ai.gx)*0.5-Math.abs(b.x+b.w/2-h.x)-Math.abs(b.x+b.w/2-ai.gx)*0.5)[0];
+    if (!next) return;
+  }
+  const cur = h.y < GROUND-1 ? platAt(h.x, h.y) : null;   // 지금 서 있는 발판 (땅이면 null)
+  const lo = cur ? Math.max(cur.x, next.x) : next.x, hi = cur ? Math.min(cur.x+cur.w, next.x+next.w) : next.x+next.w;
+  if (hi - lo > 40) { // 아래에서 올라갈 수 있음 (발판은 아래에서 통과): 겹치는 곳 밑으로 가서 제자리 점프
+    const px = clamp(h.x, lo+18, hi-18);
+    if (Math.abs(px-h.x) < 14) { if (canJump) aiJump(h); h.inputX = 0; } else h.inputX = Math.sign(px-h.x);
+    return;
+  }
+  // 겹치지 않음 (발판 → 옆 발판): 내 발판 끝까지 달려가 끝에서 점프
+  const d = Math.sign(next.x+next.w/2-h.x); h.inputX = d;
+  const myEdge = d > 0 ? cur.x+cur.w : cur.x;
+  if (Math.abs(myEdge-h.x) < 10) { if (canJump && !(h.atkLock>0)) { aiJump(h); h.climbAir = true; } else h.inputX = 0; } // 쿨 중이면 끝에서 기다림 (떨어지지 않게)
 }
 function aiJump(h){ if (h.root>0) return; h.vy = -640*(G.teams[h.team].buffT>0?DBUF().jump:1); h.ground=false; h.ai.jumpCd=0.5; }
 function aiShop(h) {
