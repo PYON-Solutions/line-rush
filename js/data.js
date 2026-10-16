@@ -2,25 +2,33 @@
 const WORLD_W = 4400, VIEW_H = 450, GROUND = 382;
 const HEROES = {
   bear: { name:'뭉치', role:'곰 전사 · 근접', img:'h_bear', color:'#c98a4b',
-    hp:1050, hpL:100, atk:72, atkL:8, range:80, as:0.85, spd:210, armor:0.15, proj:null, lifesteal:0.15,
+    hp:1050, hpL:70, atk:72, atkL:5, mana:[45,60,110], range:80, as:0.85, spd:210, armor:0.15, proj:null, lifesteal:0.15,
     skills:[
       {name:'쿵 내려찍기', cd:8, desc:'점프 후 내려찍어 주변 기절'},
       {name:'꿀 방패', cd:14, desc:'3초간 받는 피해 50% 감소'},
       {name:'곰 돌진', cd:40, desc:'앞으로 돌진하며 적을 밀쳐냄'}]},
   chick:{ name:'삐요', role:'병아리 궁수 · 원거리', img:'h_chick', color:'#f2c230',
-    hp:640, hpL:66, atk:54, atkL:6, range:300, as:0.7, spd:215, armor:0, proj:'arrow',
+    hp:640, hpL:44, atk:54, atkL:4, mana:[40,45,110], range:300, as:0.7, spd:215, armor:0, proj:'arrow',
     skills:[
       {name:'삼연발', cd:6, desc:'화살 3발을 부채꼴로 발사'},
       {name:'날개 대시', cd:10, desc:'뒤로 폴짝 뛰어 거리 벌리기'},
       {name:'화살비', cd:45, desc:'넓은 지역에 화살비'}]},
   cat:  { name:'모모', role:'고양이 마법사 · 마법', img:'h_cat', color:'#8b8fd8',
-    hp:600, hpL:62, atk:60, atkL:7, range:265, as:1.0, spd:205, armor:0, proj:'orb',
+    hp:600, hpL:42, atk:60, atkL:4.4, mana:[50,55,120], range:265, as:1.0, spd:205, armor:0, proj:'orb',
     skills:[
       {name:'얼음 냥펀치', cd:7, desc:'얼음 구체로 피해+둔화'},
       {name:'순간이동', cd:12, desc:'앞/위로 순간이동'},
       {name:'별똥별', cd:50, desc:'거대한 별을 떨어뜨림'}]},
 };
-const LEVEL_XP = [0,100,240,420,640,900,1200,1550,1950,2400]; // 레벨 1~10 누적 경험치
+// 영웅 레벨 1~20: LEVEL_XP[n] = 레벨 n+1 이 되는 누적 경험치 (구간 = 100 + 40×(n-1))
+const MAX_LV = 20;
+const LEVEL_XP = (() => { const a=[0]; for (let n=1;n<MAX_LV;n++) a.push(a[n-1] + 100 + 40*(n-1)); return a; })();
+const ULT_LV = 6, ULT_UP = [11, 16];      // 궁극기 해제 레벨, 궁극기 강화 레벨 (각 +30%)
+const LV_SKILL = 0.045;                    // 레벨당 스킬 피해 +4.5%
+// 마나: 최대치 = base + perLv×(레벨-1). 라인에서는 천천히, 기지 근처에서는 빠르게 회복
+const MANA = { base:150, perLv:12, regen:2.2, regenIdle:4, baseRegenPct:0.30 };
+const RECALL = { time:4, baseZone:300, baseHealPct:0.20 };  // 귀환 채널링(초), 기지 구역 반경(px), 기지 회복(초당 최대치 비율)
+const DASH = { cd:16, dist:190 };          // 공용 대시 (점멸)
 const MINIONS = { // blue=물방울, red=불씨
   melee: { hp:290, atk:18, range:42, as:1.0, spd:62, gold:20, xp:32, h:40, img:0 },
   ranged:{ hp:190, atk:24, range:210, as:1.3, spd:62, gold:16, xp:28, h:50, img:1 },

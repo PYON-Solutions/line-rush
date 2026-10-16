@@ -1,6 +1,8 @@
 // Three.js 2.5D renderer for Line Rush
 import * as THREE from '../vendor/three.module.js';
 import { makeCrate, makeRock, makeWard, makePlatform, makeProjectile } from './models.js';
+import { makeLair } from '../dragons/lair.js';
+const PLAT_TOP = 0.32; const lairs = [];
 import { loadSprites, fxGroup, tickFx, burst as fxBurst } from './sprites2d.js';
 import { makeMinion, minionPaths } from '../minions/sprite.js';
 import { makeDragon, dragonPaths } from '../dragons/sprite.js';
@@ -60,7 +62,7 @@ export function createRenderer(container) {
   const groundCenterX = (4400 * SCALE) / 2;
   const groundMat = new THREE.MeshStandardMaterial({ color: 0x6cbb63, roughness: 0.9, metalness: 0 });
   const groundTop = new THREE.Mesh(new THREE.BoxGeometry(groundLen, 0.4, 8), groundMat);
-  groundTop.position.set(groundCenterX, -0.2, 0);
+  groundTop.position.set(groundCenterX, -0.27, 0);
   groundTop.receiveShadow = true;
   world.add(groundTop);
   const dirt = new THREE.Mesh(new THREE.BoxGeometry(groundLen, 1.5, 8.2), new THREE.MeshStandardMaterial({ color: 0x8a5e3a, roughness: 0.95 }));
@@ -68,10 +70,10 @@ export function createRenderer(container) {
   dirt.receiveShadow = true;
   world.add(dirt);
   const grassEdge = new THREE.Mesh(new THREE.BoxGeometry(groundLen, 0.08, 8.1), new THREE.MeshStandardMaterial({ color: 0x8fe06a }));
-  grassEdge.position.set(groundCenterX, 0.02, 0);
+  grassEdge.position.set(groundCenterX, -0.05, 0);
   world.add(grassEdge);
   const path = new THREE.Mesh(new THREE.BoxGeometry(groundLen, 0.05, 2.2), new THREE.MeshStandardMaterial({ color: 0x7ed35f, roughness: 0.85 }));
-  path.position.set(groundCenterX, 0.04, 0);
+  path.position.set(groundCenterX, -0.025, 0); // 윗면 ≈ 0.0 = 유닛 발 높이
   path.receiveShadow = true;
   world.add(path);
   // decorative grass tufts & flowers along lane
@@ -187,6 +189,29 @@ export function createRenderer(container) {
     spr.userData.cv = cv; spr.userData.tex = tex; spr.userData.team = team;
     return spr;
   }
+  // 영웅 머리 위: 레벨 배지 + 체력 + 마나 (값이 바뀔 때만 다시 그림)
+  function makeHeroBar(team) {
+    const cv = document.createElement('canvas'); cv.width = 128; cv.height = 30;
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, toneMapped: false }));
+    spr.scale.set(2.05, 0.48, 1); spr.renderOrder = 20;
+    spr.userData = { cv, tex, team, hero: true, key: '' };
+    return spr;
+  }
+  function updateHeroBar(spr, e) {
+    const hp = Math.max(0, e.hp / e.maxHp), mp = Math.max(0, (e.mp || 0) / (e.maxMp || 1));
+    const key = `${e.lv}|${Math.round(hp * 60)}|${Math.round(mp * 60)}|${e.team}`;
+    if (spr.userData.key === key) return; spr.userData.key = key;
+    const c = spr.userData.cv.getContext('2d'); c.clearRect(0, 0, 128, 30);
+    const col = e.team === 0 ? '#4fb3ff' : '#ff5a5a';
+    c.fillStyle = 'rgba(0,0,0,0.6)'; c.beginPath(); c.roundRect ? c.roundRect(24, 4, 102, 22, 5) : c.rect(24, 4, 102, 22); c.fill();
+    c.fillStyle = col; c.fillRect(27, 7, 96 * hp, 10);
+    c.fillStyle = 'rgba(255,255,255,0.25)'; for (let i = 1; i < 10; i++) c.fillRect(27 + i * 9.6, 7, 1, 10);
+    c.fillStyle = '#3f8cff'; c.fillRect(27, 19, 96 * mp, 5);
+    c.beginPath(); c.arc(14, 15, 13, 0, 7); c.fillStyle = e.lv >= 15 ? '#ff9a2e' : '#ffd84a'; c.fill(); c.lineWidth = 2.5; c.strokeStyle = col; c.stroke();
+    c.fillStyle = '#3a2410'; c.font = 'bold 15px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(e.lv), 14, 16);
+    spr.userData.tex.needsUpdate = true;
+  }
   function updateHpSprite(spr, p, team) {
     const cv = spr.userData.cv, ctx = cv.getContext('2d'), tex = spr.userData.tex;
     ctx.clearRect(0, 0, 64, 10);
@@ -223,10 +248,12 @@ export function createRenderer(container) {
   }
 
   function buildMatchEnv(G, GROUND) {
-    clearMeshes();
+    clearMeshes(); lairs.length = 0;
     for (const p of G.plats) {
       const m = makePlatform(p.w * SCALE, !!p.center);
-      m.position.set(gx(p.x), gy(p.y, GROUND), 0);
+      // 윗면(+0.32)이 유닛이 서는 높이와 같도록 내림
+      m.position.set(gx(p.x), gy(p.y, GROUND) - PLAT_TOP, 0);
+      if (p.center) { const L = makeLair(p.w * SCALE); L.position.y = PLAT_TOP; m.add(L); lairs.push(L); }
       world.add(m);
       platMeshes.push(m);
     }
@@ -253,7 +280,7 @@ export function createRenderer(container) {
     if (!m) return null;
     // HP bar
     if (e.kind === 'hero' || e.kind === 'minion' || e.kind === 'tower' || e.kind === 'base' || e.kind === 'dragon') {
-      const hp = makeHpSprite(e.team === 2 ? 2 : e.team);
+      const hp = e.kind === 'hero' ? makeHeroBar(e.team) : makeHpSprite(e.team === 2 ? 2 : e.team);
       hp.position.y = e.kind === 'base' ? 4.5 : e.kind === 'dragon' ? 3.9 : e.kind === 'tower' ? 4.2 : e.kind === 'hero' ? 2.9 : (m.userData.minion ? m.userData.minion.h + 0.15 : 2.4);
       m.add(hp);
       m.userData.hpSpr = hp;
@@ -419,7 +446,8 @@ export function createRenderer(container) {
     if (m.userData.hpSpr) {
       const show = e.kind === 'hero' || e.kind === 'dragon' || e.kind === 'tower' || e.kind === 'base' || e.hp < e.maxHp;
       m.userData.hpSpr.visible = !!show;
-      if (show) updateHpSprite(m.userData.hpSpr, e.hp / e.maxHp, e.team === 2 ? 2 : e.team);
+      if (show && m.userData.hpSpr.userData.hero) { updateHeroBar(m.userData.hpSpr, e); m.userData.hpSpr.position.y = 2.95 * (m.userData.heroScale || 1); }
+      else if (show) updateHpSprite(m.userData.hpSpr, e.hp / e.maxHp, e.team === 2 ? 2 : e.team);
     }
     // shield bubble for bear
     if (e.kind === 'hero' && e.shield > 0 && !m.userData.puppet) {
@@ -685,6 +713,7 @@ export function createRenderer(container) {
     syncParticles(G.parts || [], GROUND, dt);
     pruneMaps(G);
     for (let i = dying.length - 1; i >= 0; i--) { const d = dying[i]; d.t += dt || 0.016; const k = Math.min(1, d.t / d.life); d.m.userData.die(d.m, k, false); if (k >= 1) { world.remove(d.m); dying.splice(i, 1); } }
+    for (const L of lairs) L.userData.update(dt || 0.016, performance.now() / 1000);
     tickFx(dt || 0.016);
 
     // empty tower slots markers
