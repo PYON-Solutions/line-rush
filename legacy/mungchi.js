@@ -6,11 +6,11 @@
 import * as THREE from '../vendor/three.module.js';
 import { GLTFLoader } from '../vendor/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from '../vendor/addons/utils/SkeletonUtils.js';
-import { makeHero } from './models.js';
+import { makeHero } from './heroes3d.js';
 
 let tmpl = null, clips = null, fitScale = 1;
 
-export function loadMungchi(url = 'models/mungchi.glb') {
+export function loadMungchi(url = 'legacy/models/mungchi.glb') {
   return new Promise((res) => {
     new GLTFLoader().load(url, (gltf) => {
       tmpl = gltf.scene; clips = gltf.animations;

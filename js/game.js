@@ -15,13 +15,11 @@ addEventListener('resize', resize); resize();
 
 // ---------- 이미지 ----------
 const IMG = {}, WHITE = {};
-const imgNames = ['h_bear','h_chick','h_cat','h_bear_r','h_chick_r','h_cat_r','dragon'];
-for (const e of ['water','rock','fire']) for (let i=0;i<3;i++) imgNames.push(`m_${e}${i}`);
-for (let i=1;i<=5;i++) imgNames.push(`base${i}`,`base${i}_r`,`tower${i}`,`tower${i}_r`);
+const imgNames = Object.keys(ASSET_PATH); // js/assets.js
 let loaded = 0;
 for (const n of imgNames) {
   const im = new Image(); im.onload = () => { loaded++; WHITE[n] = whiteOf(im); }; im.onerror = () => { loaded++; console.warn('img fail', n); };
-  im.src = 'img/' + n + '.png'; IMG[n] = im;
+  im.src = ASSET_PATH[n]; IMG[n] = im;
 }
 function whiteOf(im) { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d');
   g.drawImage(im,0,0); g.globalCompositeOperation='source-atop'; g.fillStyle='#fff'; g.fillRect(0,0,c.width,c.height); return c; }
@@ -65,19 +63,17 @@ function newMatch(heroKey) {
   const keysH = Object.keys(HEROES); const aiKey = keysH.filter(k=>k!==heroKey)[Math.floor(Math.random()*2)];
   G = { t:0, ents:[], proj:[], parts:[], nums:[], diff, over:false, camX:0, shopOpen:false, popup:null, msg:[], dragonNext:DRAGON.first,
     teams:[mkTeam(0), mkTeam(1)], stats:{kills:0,deaths:0,cs:0}, plats:[], obst:[], slots:[] };
-  const C = WORLD_W/2;
-  G.plats.push({x:C-140,w:280,y:GROUND-215,center:true},{x:C-470,w:220,y:GROUND-110},{x:C+250,w:220,y:GROUND-110},
-    {x:1050,w:200,y:GROUND-115},{x:WORLD_W-1250,w:200,y:GROUND-115});
+  G.plats.push(...MAP.plats(WORLD_W, GROUND)); // maps/
   for (const t of [0,1]) {
-    const b = ent({kind:'base', team:t, x: t?WORLD_W-230:230, w:150, h:170, hp:BASE.hp[0]}); b.rockT=0; G.teams[t].base=b;
+    const b = ent({kind:'base', team:t, x: t?WORLD_W-MAP.baseX:MAP.baseX, w:150, h:170, hp:BASE.hp[0]}); b.rockT=0; G.teams[t].base=b;
   }
-  const tx = [[560,true],[880,false],[1220,true],[1560,false]];
+  const tx = MAP.towerSlots;
   for (const t of [0,1]) for (const [x,empty] of tx) {
     const X = t? WORLD_W-x : x; const slot = {team:t, x:X, tower:null}; G.slots.push(slot);
     if (!empty) buildTower(slot);
   }
-  for (const [x,type] of [[1380,'crate'],[1850,'rock'],[WORLD_W-1380,'crate'],[WORLD_W-1850,'rock']])
-    G.obst.push(ent({kind:'obst', team:3, x, w:type==='rock'?62:50, h:type==='rock'?48:50, hp:type==='rock'?260:160, type}));
+  for (const [x,type] of MAP.obstacles(WORLD_W)) { const s = MAP.obstStats[type];
+    G.obst.push(ent({kind:'obst', team:3, x, w:s.w, h:s.h, hp:s.hp, type})); }
   G.hero = mkHero(heroKey, 0, AUTO ? 'normal' : null);
   G.ai = mkHero(aiKey, 1, diff);
   G.teams[0].hero=G.hero; G.teams[1].hero=G.ai;
@@ -139,7 +135,7 @@ function kill(e, src) {
   e.hp = 0; const sh = heroOf(src);
   burst(e.x, cy(e), e.kind==='hero' ? '#ffffff' : (e.team===0?'#7fc8ff':'#ff8a6a'), e.kind==='minion'?14:30);
   if (e.kind==='minion') {
-    e.dead = true; G.parts.push({pop:true, img:`m_${e.team===0?'water':'fire'}${e.mt.img}`, x:e.x, y:e.y, h:e.mt.h, face:e.face, t:0, life:0.35}); if (onScreen(e)) sfx('pop');
+    e.dead = true; G.parts.push({pop:true, img:`m_${MAP.teamElem[e.team]}${e.mt.img}`, x:e.x, y:e.y, h:e.mt.h, face:e.face, t:0, life:0.35}); if (onScreen(e)) sfx('pop');
     if (sh && sh.team!==e.team) { gold(sh.team, e.mt.gold, e.x, e.y-e.h-10); if (sh===G.hero) G.stats.cs++; }
     const foe = G.teams[1-e.team].hero; if (isAlive(foe) && Math.abs(foe.x-e.x) < 750) giveXp(foe, e.mt.xp);
   } else if (e.kind==='hero') {
@@ -253,7 +249,7 @@ function updHero(h, dt) {
   h.land = Math.max(0,(h.land||0)-dt*4);
   if (h.atkT <= 0 && h.stun<=0 && !h.dash) {
     const tgt = pickTarget(h);
-    if (tgt) { h.atkT = h.d.as; h.face = Math.sign(tgt.x-h.x)||h.face; h.swing = 1;
+    if (tgt) { h.atkT = h.d.as; h.face = Math.sign(tgt.x-h.x)||h.face; h.swing = 1; h.animAct='basic'; h.animSeq=(h.animSeq||0)+1;
       const crit = Math.random() < 0.15, dmgA = heroAtk(h)*(crit?1.7:1); if (onScreen(h)) sfx(h.d.proj?'shoot':'hit', 0.4);
       if (h.d.proj) G.proj.push({kind:h.d.proj, x:h.x+h.face*20, y:cy(h)-8, team:h.team, owner:h, target:tgt, dmg:dmgA, crit, spd:h.d.proj==='arrow'?720:520, homing:true, aoe:h.d.proj==='orb'?45:0});
       else { damage(h, tgt, dmgA, {pc:'#ffe2a0', crit}); if (h.d.lifesteal) h.hp = Math.min(h.maxHp, h.hp + dmgA*h.d.lifesteal); if (tgt.kind!=='minion') shake=Math.max(shake,2); }
@@ -292,6 +288,7 @@ function useSkill(h, i) {
     if (i===2) { let tx = h.x + f*280; const eh = G.teams[1-h.team].hero; if (isAlive(eh) && Math.abs(eh.x-h.x)<520) tx = eh.x;
       G.proj.push({kind:'star', x0:tx-f*260, tx, ty:GROUND, team:h.team, owner:h, dmg:360*m, life:0.8, t0:0.8}); }
   }
+  h.animAct=['skill1','skill2','ult'][i]; h.animSeq=(h.animSeq||0)+1; // characters/ 퍼펫 동작 트리거
   if (onScreen(h)) sfx('shoot');
   h.cds[i] = h.d.skills[i].cd * (1 - 0.1*G.teams[h.team].skill[i]);
   return true;
@@ -660,7 +657,7 @@ function drawEntity(e, camX) {
     hpBar(x, GROUND-hh-10, 64, e.hp/e.maxHp, e.team, 5);
     if (e.team===0 && e.lv<4 && slotAffordable(e.slot)) { ctx.globalAlpha = 0.6+0.4*Math.sin(T*6); txt('▲', x+34, GROUND-hh+8, 18, '#ffe066'); ctx.globalAlpha=1; }
   } else if (e.kind==='minion') {
-    const elem = e.team===0?'water':'fire'; const name = `m_${elem}${e.mt.img}`;
+    const elem = MAP.teamElem[e.team]; const name = `m_${elem}${e.mt.img}`;
     const hop = e.walking ? Math.abs(Math.sin(e.anim*9))*5 : 0; const sq = 1 + (e.walking? Math.sin(e.anim*18)*0.05 : 0) + (e.swing||0)*0.12;
     shadow(x, GROUND, e.mt.h*0.8);
     const isq = e.squash||0; drawSprite(name, x + (e.flash>0.6? rand(-2,2):0), e.y - hop, e.mt.h, e.face<0, {sx:(1+isq*0.25)/sq, sy:sq*(1-isq*0.22), flash:e.flash, rot:(e.swing||0)*0.15*e.face});

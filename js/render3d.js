@@ -1,11 +1,12 @@
 // Three.js 2.5D renderer for Line Rush
 import * as THREE from '../vendor/three.module.js';
-import {
-  makeHero, makeMinion, makeDragon, makeBase, makeTower,
-  makeCrate, makeRock, makeWard, makePlatform, makeProjectile
-} from './models.js';
-import { loadMungchi, makeHeroPivot, updateMungchi } from './mungchi.js';
-export const assetsReady = loadMungchi();
+import { makeCrate, makeRock, makeWard, makePlatform, makeProjectile } from './models.js';
+import { makeMinion } from '../minions/model.js';
+import { makeDragon } from '../dragons/model.js';
+import { makeBase } from '../bases/model.js';
+import { makeTower } from '../towers/model.js';
+import { heroesReady, makePuppetHero, updatePuppet } from './heroes2d.js';
+export const assetsReady = heroesReady; // 영웅은 characters/ 의 2D 퍼펫
 
 const GROUND_Y = 0;
 const SCALE = 0.028; // game units → world units (hero ~72px → ~2 units)
@@ -23,7 +24,7 @@ export function createRenderer(container) {
   container.insertBefore(renderer.domElement, container.firstChild);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x7ec8f0);
+  scene.background = new THREE.Color((window.MAP && MAP.sky) || 0x7ec8f0);
   scene.fog = new THREE.Fog(0xbfe6ff, 40, 120);
 
   const camera = new THREE.PerspectiveCamera(42, 16 / 9, 0.5, 200);
@@ -232,9 +233,9 @@ export function createRenderer(container) {
   function ensureEntity(e, GROUND) {
     if (meshMap.has(e)) return meshMap.get(e);
     let m = null;
-    if (e.kind === 'hero') m = makeHeroPivot(e.key, e.team);
+    if (e.kind === 'hero') m = makePuppetHero(e.key, e.team);
     else if (e.kind === 'minion') {
-      const elem = e.team === 0 ? 'water' : 'fire';
+      const elem = window.MAP ? MAP.teamElem[e.team] : (e.team === 0 ? 'water' : 'fire');
       // rock variant unused in spawn but supported
       m = makeMinion(elem, e.mt.img, e.team);
     } else if (e.kind === 'dragon') m = makeDragon();
@@ -246,7 +247,7 @@ export function createRenderer(container) {
     // HP bar
     if (e.kind === 'hero' || e.kind === 'minion' || e.kind === 'tower' || e.kind === 'base' || e.kind === 'dragon') {
       const hp = makeHpSprite(e.team === 2 ? 2 : e.team);
-      hp.position.y = e.kind === 'base' ? 4.5 : e.kind === 'dragon' ? 3.2 : e.kind === 'tower' ? 3.0 : 2.4;
+      hp.position.y = e.kind === 'base' ? 4.5 : e.kind === 'dragon' ? 3.2 : e.kind === 'tower' ? 3.0 : e.kind === 'hero' ? 2.9 : 2.4;
       m.add(hp);
       m.userData.hpSpr = hp;
     }
@@ -265,15 +266,6 @@ export function createRenderer(container) {
 
   function animCharacter(m, e, dt, t) {
     const moving = e.kind === 'hero' ? Math.abs(e.vx) > 10 && e.ground : !!e.walking;
-    if (m.userData.mungchi) {
-      updateMungchi(m.userData.mungchi, { moving, ground: e.ground, swing: e.swing }, dt || 0.016);
-      const sq = e.squash || 0, land = e.land || 0;
-      const sy = 1 - land * 0.1 - sq * 0.12, sx = (1 + sq * 0.15) / Math.max(0.7, sy);
-      m.scale.set(sx, sy, sx);
-      faceDir(m, e, dt);
-      flash(m, e);
-      return;
-    }
     const L = m.userData.L;
     if (!L) return;
     const swing = e.swing || 0;
@@ -403,10 +395,11 @@ export function createRenderer(container) {
     m.visible = true;
     const y = e.kind === 'obst' || e.kind === 'ward' ? 0 : gy(e.y, GROUND);
     // slight Z offset by kind for depth sorting feel
-    const zOff = e.kind === 'hero' ? 0.15 : e.kind === 'minion' ? (e.team === 0 ? 0.05 : -0.05) : 0;
+    const zOff = e.kind === 'hero' ? 0.7 : e.kind === 'minion' ? (e.team === 0 ? 0.05 : -0.05) : 0;
     m.position.set(gx(e.x), Math.max(0, y), zOff);
 
-    if (e.kind === 'hero' || e.kind === 'minion' || e.kind === 'dragon') {
+    if (m.userData.puppet) updatePuppet(m, e, dt);
+    else if (e.kind === 'hero' || e.kind === 'minion' || e.kind === 'dragon') {
       animCharacter(m, e, dt, t);
     }
     if (m.userData.hpSpr) {
@@ -415,7 +408,7 @@ export function createRenderer(container) {
       if (show) updateHpSprite(m.userData.hpSpr, e.hp / e.maxHp, e.team === 2 ? 2 : e.team);
     }
     // shield bubble for bear
-    if (e.kind === 'hero' && e.shield > 0) {
+    if (e.kind === 'hero' && e.shield > 0 && !m.userData.puppet) {
       if (!m.userData.shieldMesh) {
         const s = new THREE.Mesh(new THREE.SphereGeometry(1.1, 12, 10), new THREE.MeshStandardMaterial({
           color: 0xffcc33, transparent: true, opacity: 0.28, emissive: 0xffaa00, emissiveIntensity: 0.3
@@ -568,9 +561,8 @@ export function createRenderer(container) {
       scene.add(dirt);
     }
     menuHeroes = keys.map((k, i) => {
-      const h = makeHeroPivot(k, 0);
+      const h = makePuppetHero(k, 0);
       h.position.set((i - 1) * 3.5, 0, 0.5);
-      h.scale.multiplyScalar(1.5);
       scene.add(h);
       return h;
     });
@@ -594,7 +586,7 @@ export function createRenderer(container) {
     const md = scene.getObjectByName('menuDirt');
     if (mg) mg.visible = true;
     if (md) md.visible = true;
-    scene.background = new THREE.Color(0x7ec8f0);
+    scene.background = new THREE.Color((window.MAP && MAP.sky) || 0x7ec8f0);
     if (!menuHeroes) {
       showMenuHeroes(['bear', 'chick', 'cat'], selHero);
     }
@@ -603,9 +595,8 @@ export function createRenderer(container) {
       const sel = selHero === k;
       h.position.y = Math.abs(Math.sin(t * 3 + i)) * (sel ? 0.25 : 0.1);
       // face camera slightly, gentle turn
-      h.rotation.y = -Math.PI / 2 + 0.35 + Math.sin(t * 0.7 + i) * 0.2; // pivots face +X; -PI/2 faces camera
-      if (h.userData.mungchi) { const M = h.userData.mungchi; const dtm = Math.min(0.1, Math.max(0, t - (M.lastT ?? t))); M.lastT = t; updateMungchi(M, { moving: false, ground: true, swing: 0 }, dtm); }
-      const s = sel ? 1.7 : 1.45;
+      { const P = h.userData.puppet; const dtm = Math.min(0.05, Math.max(0, t - (P.lastT ?? t))); P.lastT = t; updatePuppet(h, { face: 1, ground: true, vx: 0 }, dtm); }
+      const s = sel ? 1.25 : 1.05;
       h.scale.setScalar(s);
       const L = h.userData.L;
       if (L && L.armL) {
@@ -692,7 +683,7 @@ export function createRenderer(container) {
   }
 
   function renderBlank() {
-    scene.background = new THREE.Color(0x7ec8f0);
+    scene.background = new THREE.Color((window.MAP && MAP.sky) || 0x7ec8f0);
     renderer.render(scene, camera);
   }
 

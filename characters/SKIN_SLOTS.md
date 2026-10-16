@@ -1,16 +1,16 @@
-# Skin part slots (prototype: proto2d.html)
+# Skin part slots (characters/)
 
 A skin is a folder of PNGs with the same slot names and a `pivots.json` file. To reskin, replace the folder and keep the slot names.
 
-    img2d/<hero>/parts/<slot>.png
-    img2d/<hero>/parts/pivots.json
+    characters/<hero>/parts/<slot>.png
+    characters/<hero>/parts/pivots.json
 
 ## Image rules
 - Transparent RGBA. Each part is painted **vertical**: the parent joint is at the top and the child joint is at the bottom.
 - `pivot`: the parent joint in image px. The part rotates around this point.
 - `end`: the child joint in image px. The bone is length-fitted from pivot to end, so overlap past `end` is kept. Paint generous rounded overlap at both ends.
 - `grip` (hands): the point that lands on the IK target (the bow handle or the string).
-- Unit: see `pivots.json` (`scale`). Piyo parts are cut from the painted sheet at half resolution. proto2d draws them at about s=.5–.56. The sleeve stretches along its bone, clamped to ±25%. The forearm is anchored at the wrist and is not stretched freely, so it never becomes a long tube; the sleeve bell covers the elbow overlap.
+- Unit: see `pivots.json` (`scale`). Piyo parts are cut from the painted sheet at half resolution. The rig draws them at about s=.5–.56. The sleeve stretches along its bone, clamped to ±25%. The forearm is anchored at the wrist and is not stretched freely, so it never becomes a long tube; the sleeve bell covers the elbow overlap.
 - Draw order in a limb (idle/run): forearm → hand → sleeve → shoulder cap. Draw pose: the sleeve goes behind the torso (the elbow sits behind the back), then cap → forearm → sleeve-end patch at the elbow → pull hand. Upper sleeve: recoloured to the tunic green and its flare narrowed by 28%.
 - Light from the top left, dark outline about 2 px, no baked shadows on the background.
 

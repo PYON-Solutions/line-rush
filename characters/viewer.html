@@ -1,0 +1,60 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>라인 러쉬 캐릭터 뷰어 (뭉치·삐요·모모)</title>
+<style>html,body{margin:0;height:100%;background:#7ec8f0;overflow:hidden;font-family:sans-serif}canvas{display:block;width:100vw;height:100vh}
+#ui{position:fixed;left:10px;top:10px;display:flex;flex-direction:column;gap:6px}#ui div{display:flex;gap:5px;flex-wrap:wrap}
+#ui button{font-size:13px;padding:5px 9px;border-radius:8px;border:0;background:#fffa;cursor:pointer}#ui button.on{background:#ffd34d;font-weight:bold}
+#st{position:fixed;right:12px;top:12px;background:#0006;color:#fff;padding:4px 10px;border-radius:8px}</style></head><body>
+<canvas id="c"></canvas><div id="ui"><div id="heroes"></div><div id="acts"></div></div><div id="st"></div>
+<script type="module">
+// 캐릭터 뷰어: characters/ 모듈을 그대로 불러와 재생 (게임과 같은 코드)
+import {HEROES,loadHeroes} from './index.js';
+import * as K from './common/index.js';
+const {TAU,FX,SIMQ,tickFX,drawFX,tickSim,setMode,update,renderChar,newChar,setTarget,setWorld,setShake}=K;
+const Q=new URLSearchParams(location.search);
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+let W,H;function rs(){const d=Math.min(2,devicePixelRatio||1);W=cv.width=innerWidth*d;H=cv.height=innerHeight*d;setTarget(ctx,W,H)}addEventListener('resize',rs);rs();
+let camX=0;const MUNG=HEROES.mungchi;
+function bg(t){
+ const U=H/720,WW=W/U;const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#5fb6ee');g.addColorStop(.55,'#bfe6f7');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#fff';ctx.globalAlpha=.88;for(let i=0;i<6;i++){const x=((i*370-camX*.1+t*12)%(WW+400)+WW+400)%(WW+400)-200,y=60+(i*53)%140;[0,40,80,30].forEach((d,k)=>{ctx.beginPath();ctx.arc((x+d)*U,(y-(k%2)*20)*U,(30+k*6)*U,0,TAU);ctx.fill()})}ctx.globalAlpha=1;
+ const hill=(col,base,amp,par,fr)=>{ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(0,H);for(let x=0;x<=W;x+=8){const wx=x/U+camX*par;ctx.lineTo(x,(base+Math.sin(wx*fr)*amp+Math.sin(wx*fr*2.7)*amp*.4)*U)}ctx.lineTo(W,H);ctx.fill()};
+ hill('#9fd18a',330,30,.2,.004);hill('#7dc160',380,22,.4,.006);
+ for(let i=0;i<16;i++){const x=i*160+((i*97)%60)-camX*.4;const xx=((x%(WW+320))+WW+320)%(WW+320)-160,y=385+Math.sin(i)*12;ctx.fillStyle='#6b4a2b';ctx.fillRect((xx-4)*U,(y-10)*U,8*U,24*U);ctx.fillStyle='#2f8a3e';ctx.beginPath();ctx.arc(xx*U,(y-22)*U,22*U,0,TAU);ctx.fill();ctx.fillStyle='#45a650';ctx.beginPath();ctx.arc((xx-6)*U,(y-28)*U,12*U,0,TAU);ctx.fill()}
+ ctx.fillStyle='#78c24e';ctx.fillRect(0,430*U,W,H);const lg=ctx.createLinearGradient(0,470*U,0,640*U);lg.addColorStop(0,'#8fd65c');lg.addColorStop(1,'#6fb544');ctx.fillStyle=lg;ctx.fillRect(0,470*U,W,170*U);
+ ctx.fillStyle='#5a3a26';ctx.fillRect(0,640*U,W,H);ctx.fillStyle='#4a9c34';ctx.fillRect(0,636*U,W,8*U);
+ const wrap=(wx,m)=>((wx-camX)%(WW+m)+WW+m)%(WW+m)-m/2;
+ ctx.strokeStyle='#4f9a37';ctx.lineWidth=2*U;for(let i=0;i<60;i++){const x=wrap(i*53,60),y=480+(i*37)%150;ctx.beginPath();ctx.moveTo(x*U,y*U);ctx.lineTo((x-3)*U,(y-9)*U);ctx.moveTo(x*U,y*U);ctx.lineTo((x+4)*U,(y-8)*U);ctx.stroke()}
+ for(let i=0;i<14;i++){const x=wrap(i*211,60),y=495+(i*61)%120;ctx.fillStyle=['#ff8fb1','#fff','#ffd84a'][i%3];ctx.beginPath();ctx.arc(x*U,y*U,3.5*U,0,TAU);ctx.fill()}}
+let heroKey=Q.get('hero')||'mungchi';let chars=[];let demoOn=Q.get('demo')!=='0'&&!Q.get('act')&&!Q.get('pose');
+const DEMOS={
+ mungchi:[['run',1,.9],['basic',1,.44],['basic',1,.44],['basic3',1,.66],['skill1',1,1.0],['skill2',1,1.2],['ult',1,.85],['idle',1,.4]],
+ piyo:[['run',1,.8],['basic',1,.8],['skill1',1,.75],['skill2',1,.6],['ult',1,1.5],['jump',1,.95],['idle',1,.5]],
+ momo:[['run',1,.8],['basic',1,.55],['basic',1,.55],['skill1',1,.62],['skill2',1,.75],['ult',1,1.6],['jump',1,.95]]};
+let di=0,dt0=0,cycle=0;
+function doAction(ch,m){if(m==='basic'&&ch.hero===MUNG){ch.combo=(ch.combo||0)%3+1;m=ch.combo===3?'basic3':'basic'}setMode(ch,m)}
+function demoStep(ch,dt){const D=DEMOS[heroKey];dt0+=dt;if(dt0>=D[di][2]){dt0-=D[di][2];di=(di+1)%D.length;if(di===0){cycle++;ch.face=-ch.face}const e=D[di];setMode(ch,e[0])}}
+function build(){chars=[];FX.length=0;SIMQ.length=0;
+ if(Q.get('lineup')){const ks=['mungchi','piyo','momo'];ks.forEach((k,i)=>{const c=newChar(HEROES[k],(i-1)*255-55,1);setMode(c,Q.get('pose')||'run');c.runT=+(Q.get('t')||0)+i*.07;chars.push(c)});return}
+ const c=newChar(HEROES[heroKey],0,+(Q.get('face')||1));c.demo=demoOn;chars.push(c);if(demoOn){di=0;dt0=0;setMode(c,DEMOS[heroKey][0][0])}else setMode(c,Q.get('act')||Q.get('pose')||'idle')}
+function step(dt){tickSim(dt);tickFX(dt);chars.forEach(c=>{if(c.demo&&c.hitstop<=0)demoStep(c,dt);update(c,dt)})}
+function render(t,dt){setWorld({camX});const U=H/720;const c0=chars[Q.get('lineup')?1:0];if(!Q.get('lineup'))camX+=(c0.x-camX)*Math.min(1,dt*3);
+ ctx.save();if(K.shake>0){setShake(K.shake-dt);ctx.translate((Math.random()-.5)*50*U*K.shake,(Math.random()-.5)*36*U*K.shake)}
+ bg(t);drawFX('back');chars.forEach(renderChar);drawFX('front');ctx.restore();
+ const st=document.getElementById('st');if(st)st.textContent=HEROES[heroKey].name+' · '+(c0.actName&&c0.act?c0.actName:c0.mode)+(c0.face>0?' →':' ←')}
+let last=0;function frame(ts){const t=ts/1000,dt=Math.min(.05,t-(last||t));last=t;step(dt);render(t,dt);requestAnimationFrame(frame)}
+function start(){setWorld({CS:.62*(+Q.get('scale')||1)});build();
+ if(Q.get('act')||Q.get('pose')||Q.get('lineup')){const T=+(Q.get('t')||0),n=Math.round(T*60);for(let i=0;i<n;i++){step(1/60);render(i/60,1/60)}camX=Q.get('lineup')?0:chars[0].x+(+(Q.get('camoff')||0));setWorld({camX,shake:0});
+  // re-render without new sim: freeze
+  ctx.save();bg(1);drawFX('back');chars.forEach(renderChar);drawFX('front');ctx.restore();window.READY=1;return}
+ window.READY=1;requestAnimationFrame(frame)}
+function ui(){const hb=document.getElementById('heroes'),ab=document.getElementById('acts');
+ hb.innerHTML=Object.entries(HEROES).map(([k,h])=>`<button data-h="${k}" class="${k===heroKey?'on':''}">${h.name}</button>`).join('');
+ const names={mungchi:['기본공격(3타 콤보)','쿵 내려찍기','꿀 방패','곰 돌진'],piyo:['기본공격(활)','삼연발','날개 대시','화살비'],momo:['기본공격(오브)','얼음 냥펀치','순간이동','별똥별']}[heroKey];
+ ab.innerHTML=['demo:데모','idle:대기','run:달리기','jump:점프','basic:'+names[0],'skill1:'+names[1],'skill2:'+names[2],'ult:'+names[3],'flip:방향전환'].map(s=>{const[a,l]=s.split(':');return `<button data-a="${a}">${l}</button>`}).join('');
+ hb.querySelectorAll('button').forEach(b=>b.onclick=()=>{heroKey=b.dataset.h;demoOn=true;build();ui()});
+ ab.querySelectorAll('button').forEach(b=>b.onclick=()=>{const c=chars[0],a=b.dataset.a;if(a==='demo'){demoOn=true;build();return}if(a==='flip'){c.face*=-1;return}c.demo=false;demoOn=false;doAction(c,a)})}
+addEventListener('keydown',e=>{const c=chars[0];if(!c)return;if(e.key==='ArrowRight'||e.key==='ArrowLeft'){c.demo=false;c.face=e.key==='ArrowRight'?1:-1;if(c.mode!=='run')setMode(c,'run')}
+ const map={' ':'jump',z:'basic',x:'skill1',c:'skill2',v:'ult'};if(map[e.key]){c.demo=false;doAction(c,map[e.key])}});
+addEventListener('keyup',e=>{const c=chars[0];if(c&&(e.key==='ArrowRight'||e.key==='ArrowLeft')&&c.mode==='run')setMode(c,'idle')});
+loadHeroes().then(()=>{ui();start()});
+</script></body></html>
