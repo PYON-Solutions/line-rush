@@ -7,7 +7,8 @@ const cv = document.getElementById('game'), ctx = cv.getContext('2d', { alpha: t
 let VW = 900, SC = 1, DPR = 1;
 function resize() {
   DPR = Math.min(window.devicePixelRatio || 1, 2);
-  cv.width = innerWidth * DPR; cv.height = innerHeight * DPR;
+  const W = cv.clientWidth || innerWidth, H = cv.clientHeight || innerHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   SC = cv.height / VIEW_H; VW = cv.width / SC;
 }
 addEventListener('resize', resize); resize();
@@ -537,7 +538,7 @@ function inRect(p, r){ return p.x>=r.x && p.x<=r.x+r.w && p.y>=r.y && p.y<=r.y+r
 let uiRects = [];
 function onDown(p, id) {
   for (const u of uiRects) if (inRect(p, u.r)) { u.fn(); return; }
-  if (scene==='title') { if (sceneT>0.3) { scene='select'; sceneT=0; } return; }
+  if (scene==='title') { if (window.LRFS) LRFS.firstTap(); if (sceneT>0.3) { scene='select'; sceneT=0; } return; }
   if (scene!=='match' || G.over) return;
   if (G.shopOpen) { G.shopOpen=false; return; }
   const B = btnLayout();
@@ -792,6 +793,7 @@ function drawHUD() {
   ctx.fillStyle = aff ? '#ffb92e' : '#5a6b8a'; ctx.beginPath(); ctx.arc(B.shop.x,B.shop.y,B.shop.r,0,6.28); ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.stroke();
   coin(B.shop.x, B.shop.y-7, 8); txt('상점', B.shop.x, B.shop.y+12, 11);
   { const mb={x:VW-200, y:34, r:15}; ctx.fillStyle='rgba(20,30,60,0.55)'; ctx.beginPath(); ctx.arc(mb.x,mb.y,mb.r,0,6.28); ctx.fill(); txt(muted?'음소거':'소리', mb.x, mb.y, 9, muted?'#aaa':'#fff'); uiRects.push({r:{x:mb.x-18,y:mb.y-18,w:36,h:36}, fn:toggleMute}); }
+  if (window.LRFS && LRFS.canFS()) { const fb={x:VW-240, y:34, r:15}; ctx.fillStyle='rgba(20,30,60,0.55)'; ctx.beginPath(); ctx.arc(fb.x,fb.y,fb.r,0,6.28); ctx.fill(); txt(LRFS.isFS()?'⤡':'⛶', fb.x, fb.y, 14, '#fff'); uiRects.push({r:{x:fb.x-18,y:fb.y-18,w:36,h:36}, fn:()=>LRFS.toggle()}); }
   if (tm.buffT>0) txt(`바람 용 버프 ${Math.ceil(tm.buffT)}초`, 12, 94, 12, '#a8ffcf', 'left');
   if (G.teams[1].buffT>0) txt(`적 바람 버프 ${Math.ceil(G.teams[1].buffT)}초`, VW-12, 70, 11, '#ff9a9a', 'right');
   G.msg.forEach((m,i) => { ctx.globalAlpha = clamp(m.t,0,1); txt(m.text, VW/2, 84 + i*20, 15, m.color); }); ctx.globalAlpha=1;

@@ -534,7 +534,7 @@ export function createRenderer(container) {
   }
 
   function resize() {
-    const w = window.innerWidth, h = window.innerHeight;
+    const w = renderer.domElement.clientWidth || window.innerWidth, h = renderer.domElement.clientHeight || window.innerHeight;
     renderer.setSize(w, h, false);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     camera.aspect = w / Math.max(1, h);
