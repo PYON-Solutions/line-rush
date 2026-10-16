@@ -1,0 +1,99 @@
+{
+ "unit": "source px (half of the 1280x720 painted sheet); proto2d draws at uniform scale s=.4 (1px = .4 rig units)",
+ "scale": 0.4,
+ "slots": {
+  "shoulder": {
+   "pivot": [
+    56,
+    55
+   ]
+  },
+  "upper": {
+   "pivot": [
+    40,
+    14
+   ],
+   "end": [
+    40,
+    108
+   ]
+  },
+  "forearm": {
+   "pivot": [
+    34,
+    10
+   ],
+   "end": [
+    34,
+    86
+   ]
+  },
+  "hand_relaxed": {
+   "pivot": [
+    27,
+    16
+   ],
+   "grip": [
+    40,
+    50
+   ]
+  },
+  "hand_pull": {
+   "pivot": [
+    32,
+    10
+   ],
+   "grip": [
+    32,
+    38
+   ]
+  },
+  "hand_grip_back": {
+   "pivot": [
+    34,
+    4
+   ],
+   "grip": [
+    34,
+    30
+   ]
+  },
+  "hand_grip_front": {
+   "pivot": [
+    34,
+    4
+   ],
+   "grip": [
+    34,
+    30
+   ]
+  },
+  "far_shoulder": {
+   "pivot": [
+    56,
+    56
+   ]
+  },
+  "far_upper": {
+   "pivot": [
+    40,
+    14
+   ],
+   "end": [
+    40,
+    108
+   ]
+  },
+  "far_forearm": {
+   "pivot": [
+    35,
+    10
+   ],
+   "end": [
+    35,
+    88
+   ]
+  }
+ },
+ "notes": "Vertical parts: pivot=parent joint (top), end=child joint. Hands hang from pivot (wrist) along +y; grip = IK target. Grip: bow handle runs horizontally through grip; back drawn before bow, front after. far_* = far arm copies, drawn with a dark tint."
+}
