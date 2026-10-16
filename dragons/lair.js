@@ -20,7 +20,7 @@ export function makeLair(w) {
     let x = w * (0.12 + 0.76 * i / 6), z = -0.5 + Math.random() * 0.2;
     for (let k = 0; k < 4; k++) {
       const len = 0.25 + Math.random() * 0.25, a = (Math.random() - 0.5) * 1.6 + Math.PI / 2;
-      const c = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.025, len), lavaMat.clone());
+      const c = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.03, len), lavaMat.clone());
       c.position.set(x + Math.cos(a) * len / 2 * 0.3, 0.032, z + len / 2); c.rotation.y = (Math.random() - 0.5) * 1.2;
       g.add(c); cracks.push(c); z += len * 0.9; x += (Math.random() - 0.5) * 0.25; if (z > 0.55) break;
     }
@@ -34,13 +34,28 @@ export function makeLair(w) {
     const r = new THREE.Mesh(P && P.crystal ? new THREE.OctahedronGeometry(s * 0.8, 0) : new THREE.DodecahedronGeometry(s, 0), Math.random() < 0.5 ? rockMat : rockMat2);
     r.position.set(w * fx, s * 0.45, z); r.scale.y = 0.8 + Math.random() * 0.5; r.rotation.set(Math.random(), Math.random() * 3, Math.random()); g.add(r);
   }
+  // 둥지임을 멀리서도 알 수 있게: 앞 모서리 용암 띠 + 양 끝 뾰족 바위(용암 줄기) + 이름 표지
+  const edge = new THREE.Mesh(new THREE.BoxGeometry(w * 0.9, 0.07, 0.05), lavaMat.clone()); edge.position.set(w / 2, -0.02, 0.66); g.add(edge); cracks.push(edge);
+  const spires = [];
+  for (const [fx, sx] of [[0.03, 1], [0.97, -1], [0.11, 1], [0.89, -1]]) {
+    const big = fx < 0.05 || fx > 0.95, h = big ? 1.5 : 0.95;
+    const sp = new THREE.Mesh(new THREE.ConeGeometry(big ? 0.28 : 0.2, h, 5), rockMat); sp.position.set(w * fx, h / 2, -0.25); sp.rotation.z = sx * 0.22; g.add(sp);
+    const vein = new THREE.Mesh(new THREE.BoxGeometry(0.05, h * 0.7, 0.02), lavaMat.clone()); vein.position.set(w * fx + sx * 0.02, h * 0.38, -0.25 + (big ? 0.2 : 0.15)); vein.rotation.z = sx * 0.22; g.add(vein); cracks.push(vein);
+    spires.push(sp);
+  }
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64; const c2 = cv.getContext('2d');
+  c2.font = '900 34px sans-serif'; c2.textAlign = 'center'; c2.textBaseline = 'middle'; c2.lineWidth = 7; c2.strokeStyle = '#3a0c00'; c2.fillStyle = '#ffd08a';
+  const nm = ((window.MAP && MAP.dragonName) || '용') + ' 둥지'; c2.strokeText(nm, 128, 34); c2.fillText(nm, 128, 34);
+  const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }));
+  sign.scale.set(3.2, 0.8, 1); sign.position.set(w / 2, 1.0, 0.2); g.add(sign);
   // 옅은 붉은 안개
-  const haze = glowSprite(P ? P.haze : 0xff3018, w * 1.05); haze.scale.set(w * 1.15, 3.2, 1); haze.position.set(w / 2, 1.3, -0.6); haze.material.opacity = 0.16; haze.renderOrder = 0.5; g.add(haze);
+  const haze = glowSprite(P ? P.haze : 0xff3018, w * 1.05); haze.scale.set(w * 1.15, 3.2, 1); haze.position.set(w / 2, 1.3, -0.6); haze.material.opacity = 0.24; haze.renderOrder = 0.5; g.add(haze);
   let emb = 0;
   g.userData.update = (dt, t) => {
     for (let i = 0; i < cracks.length; i++) { const k = 0.65 + 0.35 * Math.sin(t * 2.4 + i * 1.7); if (lava) cracks[i].material.color.setRGB(1, 0.32 + 0.25 * k, 0.08 * k); else cracks[i].material.color.copy(glowC).multiplyScalar(0.6 + 0.4 * k); }
     for (let i = 0; i < glows.length; i++) glows[i].material.opacity = 0.55 + 0.25 * Math.sin(t * 1.9 + i * 2.3);
-    haze.material.opacity = 0.2 + 0.05 * Math.sin(t * 0.8);
+    haze.material.opacity = 0.26 + 0.06 * Math.sin(t * 0.8);
+    { const L = window.__LR, G = L && L.G, on = !!(G && G.ents && G.ents.some(e => e.kind === 'dragon' && !e.dead)); sign.material.opacity += ((on ? 0 : 0.95) - sign.material.opacity) * 0.08; sign.position.y = 1.0 + 0.05 * Math.sin(t * 1.5); }
     emb += dt;
     if (emb > 0.07) { emb = 0;
       const p = new THREE.Vector3(w * (0.1 + Math.random() * 0.8), 0.1, (Math.random() - 0.6) * 1.0); g.localToWorld(p);

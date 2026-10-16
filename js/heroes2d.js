@@ -42,6 +42,8 @@ export function makePuppetHero(gameKey, team) {
 }
 
 // 게임 엔티티 상태 → 퍼펫 상태 (e: 게임 hero 엔티티, 또는 메뉴용 가짜 상태)
+// 각 동작에서 무기를 '놓는' 시점 (동작 진행률 k): characters/*/rig.js 의 tick 기준
+const REL_K = { mungchi:{basic:.42, basic3:.42}, piyo:{basic:.62, skill1:.62, skill2:.45, ult:.62}, momo:{basic:.4, skill1:.4, skill2:.3, ult:.22} };
 export function updatePuppet(m, e, dt) {
   const P = m.userData.puppet; if (!P) return;
   const ch = P.ch; dt = Math.min(0.05, dt || 0.016);
@@ -50,8 +52,9 @@ export function updatePuppet(m, e, dt) {
   if ((e.animSeq || 0) !== P.seq) {
     P.seq = e.animSeq || 0;
     let a = e.animAct;
-    if (a === 'basic' && ch.hero.acts.basic3) { ch.combo = (ch.combo || 0) % 3 + 1; if (ch.combo === 3) a = 'basic3'; }
-    if (ch.hero.acts[a]) setMode(ch, a);
+    // 3타(basic3)는 game.js가 정함. 동작 재생 속도는 게임의 발사 시점(HERO_RELEASE)에 놓는 프레임이 오도록 맞춤
+    if (ch.hero.acts[a]) { setMode(ch, a); const k = (REL_K[ch.hero.key] || {})[a], rt = ((window.HERO_RELEASE || {})[P.gameKey] || {})[a];
+      ch.actRate = k && rt ? Math.max(0.6, Math.min(3, k * ch.hero.acts[a].dur / rt)) : 1; }
   }
   const moving = Math.abs(e.vx || 0) > 10 && e.ground !== false;
   const want = e.ground === false ? 'jump' : moving ? 'run' : 'idle';
@@ -60,7 +63,7 @@ export function updatePuppet(m, e, dt) {
   // 이펙트/시뮬레이션 큐를 이 영웅 것으로 교체
   swap(FX, P.fx); swap(SIMQ, P.simq);
   setTarget(P.g, CW, CH); setWorld({ CS: PCS, GY: PGY, camX: 0, GAME: true });
-  tickFX(dt); update(ch, dt);
+  tickFX(dt); update(ch, ch.act ? dt * (ch.actRate || 1) : dt);
   ch.x = 0; ch.y = 0; ch.trail.length = 0;
   if (P.gameKey === 'bear' || ch.hero.key === 'mungchi') { if (e.shield > 0) { ch.shield = Math.min(1, e.shield * 3); ch.glow = null; } else if (!ch.act || ch.actName !== 'skill2') ch.shield = 0; }
   // 그리기

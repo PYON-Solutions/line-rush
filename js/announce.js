@@ -12,25 +12,25 @@ const ICON = {
   base: '<svg viewBox="0 0 64 64"><path d="M32 4l24 10v16c0 14-10 24-24 30C18 54 8 44 8 30V14z" fill="#ffd23f" stroke="#5a3a00" stroke-width="3"/><path d="M32 18v18M32 44v2" stroke="#5a3a00" stroke-width="7" stroke-linecap="round"/></svg>',
 };
 const css = `
-#ann{position:fixed;left:0;right:0;top:calc(29vh + env(safe-area-inset-top));z-index:5;pointer-events:none;display:flex;justify-content:center;font-family:inherit}
-.annB{position:relative;display:flex;flex-direction:column;align-items:center;animation:annIn 2.4s cubic-bezier(.2,.9,.3,1) forwards;filter:drop-shadow(0 4px 8px #0008)}
-.annRow{display:flex;align-items:center;gap:1.2vh;padding:.9vh 3.2vh;border-radius:999px;background:linear-gradient(90deg,transparent,var(--tc) 18%,var(--tc) 82%,transparent);position:relative;overflow:hidden}
-.annRow::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 35%,rgba(255,255,255,.75) 50%,transparent 65%);transform:translateX(-120%);animation:annShine 1.1s .18s ease-out}
-.annP{width:9.5vh;height:9.5vh;min-width:46px;min-height:46px;border-radius:50%;border:.6vh solid #fff;background:#223 center/cover no-repeat;box-shadow:0 0 0 .4vh var(--tc),0 2px 6px #0007;overflow:hidden;display:flex;align-items:center;justify-content:center}
+#ann{position:fixed;left:0;right:0;top:calc(14.5vh + env(safe-area-inset-top));z-index:5;pointer-events:none;display:flex;justify-content:center;font-family:inherit}
+.annB{position:relative;display:flex;flex-direction:row;align-items:center;gap:1.4vh;padding:.6vh 3.5vh .6vh 1.2vh;border-radius:999px;background:linear-gradient(90deg,transparent,var(--tc) 12%,var(--tc) 85%,transparent);overflow:hidden;animation:annIn 2.4s cubic-bezier(.2,.9,.3,1) forwards;filter:drop-shadow(0 4px 8px #0008)}
+.annRow{display:flex;align-items:center;gap:.8vh}.annTx{display:flex;flex-direction:column;align-items:flex-start}
+.annB::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 35%,rgba(255,255,255,.75) 50%,transparent 65%);transform:translateX(-120%);animation:annShine 1.1s .18s ease-out}
+.annP{width:9vh;height:9vh;min-width:34px;min-height:34px;border-radius:50%;border:.6vh solid #fff;background:#223 center/cover no-repeat;box-shadow:0 0 0 .4vh var(--tc),0 2px 6px #0007;overflow:hidden;display:flex;align-items:center;justify-content:center}
 .annP img{width:115%;height:115%;object-fit:contain}
 .annP.dead{filter:grayscale(1) brightness(.75)}
 .annP.dead::after{content:"";position:absolute}
-.annI{width:6.5vh;height:6.5vh;min-width:30px;min-height:30px;animation:annSpin .5s .1s cubic-bezier(.3,1.6,.5,1) both}
+.annI{width:5.5vh;height:5.5vh;min-width:22px;min-height:22px;animation:annSpin .5s .1s cubic-bezier(.3,1.6,.5,1) both}
 .annI svg,.annI img{width:100%;height:100%;object-fit:contain}
-.annT{margin-top:.6vh;font-weight:900;font-size:clamp(22px,7.5vh,50px);line-height:1;letter-spacing:.02em;color:#fff;-webkit-text-stroke:.35vh var(--tk);paint-order:stroke fill;text-shadow:0 .5vh 0 var(--tk),0 0 2vh var(--tc);white-space:nowrap;background:linear-gradient(180deg,#fff 30%,var(--tg) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.annT{font-weight:900;font-size:clamp(20px,6.6vh,44px);line-height:1;letter-spacing:.02em;color:#fff;-webkit-text-stroke:.35vh var(--tk);paint-order:stroke fill;text-shadow:0 .5vh 0 var(--tk),0 0 2vh var(--tc);white-space:nowrap;background:linear-gradient(180deg,#fff 30%,var(--tg) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .annS{margin-top:.3vh;font-weight:800;font-size:clamp(12px,3.4vh,20px);color:#fff;text-shadow:0 1px 0 #000,0 0 6px #000a;white-space:nowrap}
 .annS b{color:var(--hl)}
 @keyframes annIn{0%{transform:scale(2.4);opacity:0}9%{transform:scale(.88);opacity:1}15%{transform:scale(1.07)}21%{transform:scale(1)}84%{transform:scale(1);opacity:1}100%{transform:translateY(-3vh) scale(.92);opacity:0}}
 @keyframes annShine{to{transform:translateX(120%)}}
 @keyframes annSpin{0%{transform:scale(0) rotate(-120deg)}100%{transform:scale(1) rotate(0)}}
-#annFeed{position:fixed;left:calc(10px + env(safe-area-inset-left));top:calc(25vh + env(safe-area-inset-top));z-index:4;pointer-events:none;display:flex;flex-direction:column;gap:4px}
-.annF{display:flex;align-items:center;gap:4px;padding:2px 8px 2px 3px;border-radius:14px;background:rgba(10,20,40,.55);border-left:4px solid var(--tc);font-size:clamp(10px,2.6vh,14px);font-weight:800;color:#fff;animation:annFIn .3s ease-out;transition:opacity .5s}
-.annF i{width:clamp(18px,5.5vh,28px);height:clamp(18px,5.5vh,28px);border-radius:50%;background:#334 center/cover;display:inline-block;border:2px solid var(--tc)}
+#annFeed{position:fixed;right:calc(8px + env(safe-area-inset-right));top:calc(16vh + env(safe-area-inset-top));z-index:4;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.annF{display:flex;align-items:center;gap:4px;padding:2px 8px 2px 3px;border-radius:14px;background:rgba(10,20,40,.55);border-right:4px solid var(--tc);font-size:clamp(10px,2.6vh,14px);font-weight:800;color:#fff;animation:annFIn .3s ease-out;transition:opacity .5s}
+.annF i{width:clamp(16px,4.6vh,24px);height:clamp(16px,4.6vh,24px);border-radius:50%;background:#334 center/cover;display:inline-block;border:2px solid var(--tc)}
 .annF i.d{filter:grayscale(1)}.annF .x{width:clamp(14px,4vh,20px);height:clamp(14px,4vh,20px)}.annF .x svg{width:100%;height:100%}
 @keyframes annFIn{from{transform:translateX(-30px);opacity:0}}
 #annDead{position:fixed;inset:0;z-index:3;pointer-events:none;display:none;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(ellipse at center,rgba(40,40,50,.05) 30%,rgba(10,10,20,.45) 100%)}
@@ -52,7 +52,7 @@ function showNext(now) {
   const b = queue.shift(), C = TEAMC[b.team] || TEAMC[0];
   const el = document.createElement('div'); el.className = 'annB';
   el.style.cssText = `--tc:${C.tc};--tk:${C.tk};--tg:${C.tg};--hl:${C.hl}`;
-  el.innerHTML = `<div class="annRow">${b.left ?? ''}<div class="annI">${ICON[b.icon] || ICON.swords}</div>${b.right ?? ''}</div><div class="annT">${b.text}</div>${b.sub ? `<div class="annS">${b.sub}</div>` : ''}`;
+  el.innerHTML = `<div class="annRow">${b.left ?? ''}<div class="annI">${ICON[b.icon] || ICON.swords}</div>${b.right ?? ''}</div><div class="annTx"><div class="annT">${b.text}</div>${b.sub ? `<div class="annS">${b.sub}</div>` : ''}</div>`;
   root.innerHTML = ''; root.appendChild(el); showing = now + (b.dur || 2.0) * 1000;
   setTimeout(() => { if (!window.__annHold) el.remove(); }, 2400);
   if (b.snd) b.snd();
@@ -60,7 +60,7 @@ function showNext(now) {
 function addFeed(team, a, icon, bImg) {
   const C = TEAMC[team] || TEAMC[0], el = document.createElement('div'); el.className = 'annF'; el.style.setProperty('--tc', C.tc);
   el.innerHTML = `${a ? `<i style="background-image:url(${a})"></i>` : ''}<span class="x">${ICON[icon] || ICON.swords}</span>${bImg ? `<i class="d" style="background-image:url(${bImg})"></i>` : ''}`;
-  feed.prepend(el); while (feed.children.length > 4) feed.lastChild.remove();
+  feed.prepend(el); while (feed.children.length > 3) feed.lastChild.remove();
   setTimeout(() => { el.style.opacity = 0; setTimeout(() => el.remove(), 600); }, 7000);
 }
 function onKill(e, src, G, sfx) {
@@ -92,8 +92,9 @@ function onKill(e, src, G, sfx) {
     const left = G.ents.filter(t => t.kind === 'tower' && !t.dead && t.team === e.team).length;
     if (!left) push({ team, icon: 'base', text: e.team === 0 ? '아군 기지 노출!' : '적 기지 노출!', sub: e.team === 0 ? '기지를 지키세요!' : '기지를 공격하세요! 피해 증가', snd: snd(['crit', 1]) });
   } else if (e.kind === 'dragon') {
+    const dn = (window.MAP && MAP.dragonName) || '용', bd = ((window.MAP && MAP.dragonBuff && MAP.dragonBuff.desc) || '이동속도 · 점프 강화');
     const kh = src && src.kind === 'hero' ? src : null, team = kh ? kh.team : src && src.team < 2 ? src.team : 2;
-    push({ team, icon: 'swords', left: kh ? pimg(portrait(kh)) : '', right: pimg('dragons/dragon.png'), text: '바람 용 처치!', sub: team === 0 ? '아군 이동속도·점프 강화!' : team === 1 ? '적이 바람 용의 힘을 얻었다' : '', snd: snd(['level', 1], ['boom', .6]) });
+    push({ team, icon: 'swords', left: kh ? pimg(portrait(kh)) : '', right: pimg('dragons/dragon.png'), text: `${dn} 처치!`, sub: team === 0 ? `아군 버프: ${bd}` : team === 1 ? `적이 ${dn}의 힘을 얻었다 (${bd})` : '', snd: snd(['level', 1], ['boom', .6]) });
     addFeed(team, kh ? portrait(kh) : null, 'swords', 'dragons/dragon.png');
   }
 }
@@ -109,4 +110,4 @@ function tickBody() {
   if (!inMatch && root.childNodes.length) { root.innerHTML = ''; feed.innerHTML = ''; }
 }
 requestAnimationFrame(tick);
-let ticks = 0; window.ANN = { onKill, _push: push, _forceNext: () => { showing = 0; showNext(performance.now()); }, _ticks: () => ticks, _dbg: () => ({ q: queue.length, showing, now: performance.now(), same: lastG === (window.__LR && window.__LR.G), kids: root.childNodes.length }) };
+let ticks = 0; window.ANN = { onKill, busy: () => root.childNodes.length > 0, _push: push, _forceNext: () => { showing = 0; showNext(performance.now()); }, _ticks: () => ticks, _dbg: () => ({ q: queue.length, showing, now: performance.now(), same: lastG === (window.__LR && window.__LR.G), kids: root.childNodes.length }) };

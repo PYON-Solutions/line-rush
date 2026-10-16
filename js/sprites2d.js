@@ -55,7 +55,7 @@ export function groundDecal(tex, w, d, color) {
 }
 export function setFlash(root, f, alpha = 1) {
   const P = root.userData.panel; f = Math.max(0, Math.min(1, f));
-  if (P.uFlash) { P.uFlash.value = f * 0.85; P.mat.opacity = alpha; return; } // 부위 리그: 셰이더에서 흰색으로 섞음(겹친 부위가 두 번 밝아지지 않게)
+  if (P.uFlash) { P.uFlash.value = f * 0.75; P.mat.opacity = alpha; return; } // 부위 리그: 셰이더에서 흰색으로 섞음(겹친 부위가 두 번 밝아지지 않게)
   P.fl.visible = f > 0.01; P.fmat.opacity = f * 0.85 * alpha; P.mat.opacity = alpha;
 }
 export function glowSprite(color, size) {

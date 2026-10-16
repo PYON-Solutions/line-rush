@@ -64,12 +64,12 @@ function rigPose(m, U, moving, k, fl, t, die) {
   hd.wob = roleOf('head') === 'flameHead' ? 4.5 : 0;
   // 무기
   const wp = pq(U, 'weapon'), role = roleOf('weapon'), d = U.sdir;
-  wp.r = moving ? sinP * .1 : Math.sin(P.t * 2.4) * .04; wp.dx = 0; wp.dy = 0;
+  wp.r = (moving ? sinP * .1 : Math.sin(P.t * 2.4) * .04) * (role === 'hammer' ? .45 : 1); wp.dx = 0; wp.dy = 0;  // 망치는 덜 돌려 손잡이 자국이 덜 보이게
   if (atk) {
     if (role === 'staff') { wp.dy = H * .02 * ka; wp.r = -.22 * ka; }
     else if (role === 'punch') { wp.dx = H * .03 * Math.sin(Math.min(1, k * 1.3) * Math.PI); wp.r = k < .35 ? .12 * ease(k / .35) : .12 - .3 * Math.sin(Math.min(1, (k - .35) / .65) * Math.PI); }
     else {
-      const up = role === 'hammer' ? .42 : role === 'bag' ? .5 : .95, down = role === 'hammer' ? .2 : role === 'bag' ? .3 : .55;
+      const up = role === 'hammer' ? .3 : role === 'bag' ? .5 : .95, down = role === 'hammer' ? .14 : role === 'bag' ? .3 : .55;
       // 0~.4 들어올림, .4~.7 내려침, .7~1 복귀
       wp.r = d * (k < .4 ? up * ease(k / .4) : k < .7 ? up - (up + down) * ease((k - .4) / .3) : -down * (1 - ease((k - .7) / .3)));
     }

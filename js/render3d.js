@@ -499,6 +499,7 @@ export function createRenderer(container) {
     if (e.zj === undefined) e.zj = Math.random() * 0.12;
     const zOff = e.kind === 'hero' ? 0.7 : e.kind === 'minion' ? (e.team === 0 ? 0.3 : 0.1) + e.zj : e.kind === 'dragon' ? -0.2 : 0;
     m.position.set(gx(e.x), Math.max(0, y), zOff);
+    if (e.gooT > 0 && e.root > 0) m.position.x += Math.sin(t * 70) * 0.04;  // 꿀 덫에 묶여 부들부들
 
     if (m.userData.puppet) updatePuppet(m, e, dt);
     else if (m.userData.update) m.userData.update(m, e, dt, t);
@@ -612,18 +613,41 @@ export function createRenderer(container) {
   }
 
   let dragonLift = 0;
+  // 드래곤 HP 바가 화면 위(미니맵/버튼 영역)나 옆으로 나가면 화면 안으로 끌어내림
+  const _v = new THREE.Vector3();
+  function clampDragonBar(G) {
+    const dr = G.ents && G.ents.find(e => e.kind === 'dragon' && !e.dead); if (!dr) return;
+    const m = meshMap.get(dr), hp = m && m.userData.hpSpr; if (!hp || !hp.visible) return;
+    if (hp.userData.y0 === undefined) hp.userData.y0 = hp.position.y;
+    camera.updateMatrixWorld(); m.updateMatrixWorld(true);
+    const TOP = 0.62, SIDE = 0.86;   // NDC 한계 (위 ~19%는 미니맵/버튼)
+    hp.position.set(0, hp.userData.y0, hp.position.z);
+    for (let i = 0; i < 12; i++) {
+      hp.updateMatrixWorld(); _v.setFromMatrixPosition(hp.matrixWorld).project(camera);
+      if (_v.y <= TOP || hp.position.y < 0.9) break;
+      hp.position.y -= 0.25;
+    }
+    hp.updateMatrixWorld(); _v.setFromMatrixPosition(hp.matrixWorld).project(camera);
+    if (Math.abs(_v.x) > SIDE && Math.abs(_v.x) < 1.6) {
+      const tx = Math.sign(_v.x) * SIDE, w = new THREE.Vector3(tx, _v.y, _v.z).unproject(camera);
+      m.worldToLocal(w); hp.position.x = w.x;
+    }
+  }
   function setCamera(camX, VW, GROUND, hero, shake) {
     // Hero around 32% from left so right buttons don't cover them
     const lookX = gx(camX + VW * 0.38);
     const heroY = hero && hero.respawn <= 0 ? gy(hero.y, GROUND) + 1.2 : 1.5;
     // 드래곤이 화면 근처에 있으면 카메라를 살짝 올리고 뒤로 빼서 높은 발판 위 드래곤이 잘리지 않게
     const dr = Gref && Gref.ents && Gref.ents.find(e => e.kind === 'dragon' && !e.dead);
-    const want = dr && Math.abs(gx(dr.x) - lookX) < 9 ? 1 : 0;
+    const lairX = dr ? dr.x : (typeof WORLD_W !== 'undefined' ? WORLD_W / 2 : null);  // 드래곤이 없어도 둥지 근처면 들어 올림
+    const want = lairX !== null && Math.abs(gx(lairX) - lookX) < 10 ? 1 : 0;
     dragonLift += (want - dragonLift) * 0.04;
-    camTarget.set(lookX, heroY * 0.5 + 1.0 + dragonLift * 2.3, 0);
+    // 드래곤 근처: 시선을 드래곤 쪽으로 조금 당기고(오른쪽 위 버튼/미니맵에 가리지 않게) 더 높이·뒤로
+    const lx = lairX !== null ? lookX + (gx(lairX) - lookX) * 0.3 * dragonLift : lookX;
+    camTarget.set(lx, heroY * 0.5 + 1.0 + dragonLift * 2.9, 0);
     // side view, slightly elevated
     // side view: lower elevation, closer for toy-figure readability
-    const ideal = new THREE.Vector3(lookX - 0.5, 5.2 + dragonLift * 2.0, 13.5 + dragonLift * 3.5);
+    const ideal = new THREE.Vector3(lx - 0.5, 5.2 + dragonLift * 2.4, 13.5 + dragonLift * 5.5);
     camPos.lerp(ideal, 0.12);
     shakeAmt = shake || 0;
     const sx = shakeAmt ? (Math.random() - 0.5) * shakeAmt * 0.04 : 0;
@@ -785,6 +809,7 @@ export function createRenderer(container) {
     // (drawn on 2D HUD overlay instead for clarity)
 
     setCamera(camX, VW, GROUND, G.hero, shake);
+    clampDragonBar(G);
 
     // parallax hills relative to camera
     hills.children.forEach(layer => {

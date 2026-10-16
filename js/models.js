@@ -159,7 +159,9 @@ export function makeProjectile(kind, elem) {
     const col = elem ? 0xff8a3a : 0x5fc4ff;
     add(root, sphere(1, col, { emissive: col, ei: 0.5 }), 0, 0, 0, 0.1, 0.12, 0.1);
   } else if (kind === 'wind') {
-    add(root, sphere(1, 0xc8fff0, { emissive: 0x88ffcc, ei: 0.5 }), 0, 0, 0, 0.14, 0.14, 0.14);
+    // 드래곤 투사체: 불꽃 용 → 불덩이 (안쪽 노랑 + 바깥 주황)
+    add(root, sphere(1, 0xff7a2a, { emissive: 0xff5a10, ei: 0.7 }), 0, 0, 0, 0.16, 0.15, 0.15);
+    add(root, sphere(1, 0xffe27a, { emissive: 0xffd040, ei: 0.9 }), 0, 0, 0, 0.09, 0.09, 0.09);
   } else if (kind === 'rock') {
     add(root, sphere(1, 0x8f8a80), 0, 0, 0, 0.14, 0.12, 0.13);
   } else if (kind === 'ball') {

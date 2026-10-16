@@ -46,7 +46,7 @@ export function makeRigPanel(rig, height, opts = {}) {
   const mesh = new THREE.Mesh(geo, mat); mesh.renderOrder = opts.order || 2; pivot.add(mesh);
   // 피격 번쩍임: 따로 흰 메시를 겹치지 않고 같은 메시 셰이더에서 흰색으로 섞음 (재질은 개체마다 따로, 프로그램은 공유)
   const uFlash = { value: 0 };
-  mat.onBeforeCompile = sh => { sh.uniforms.uFlash = uFlash; sh.fragmentShader = 'uniform float uFlash;\n' + sh.fragmentShader.replace('#include <opaque_fragment>', 'outgoingLight = mix(outgoingLight, vec3(1.0), uFlash);\n#include <opaque_fragment>'); };
+  mat.onBeforeCompile = sh => { sh.uniforms.uFlash = uFlash; sh.fragmentShader = 'uniform float uFlash;\n' + sh.fragmentShader.replace('#include <opaque_fragment>', 'outgoingLight = min(outgoingLight * (1.0 + 1.1 * uFlash) + vec3(0.28, 0.24, 0.2) * uFlash, vec3(1.0));\n#include <opaque_fragment>'); };
   mat.customProgramCacheKey = () => 'rig2dflash';
   const fl = null, fmat = null;
   const w = W * s;
