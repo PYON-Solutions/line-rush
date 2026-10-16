@@ -58,7 +58,7 @@ function makeContext() {
       for (const h of [G.hero, G.ai]) { const s = __S.h[h.team];
         if (prevRec[h.team] && !h.recall && nearBase(h) && h.respawn<=0) s.recallDone++;
         prevRec[h.team] = h.recall;
-        if (h.respawn<=0) { let st = false; for (let i=0;i<3;i++) { if (i===2 && !canUlt(h)) continue; if (h.cds[i]<=0 && h.mp < h.d.mana[i]) st = true; } if (st) s.starved += dt; }
+        if (h.respawn<=0) { let st = false; for (let i=0;i<3;i++) { if (!skillOpen(h,i)) continue; if (h.cds[i]<=0 && h.mp < h.d.mana[i]) st = true; } if (st) s.starved += dt; }
         if (!s.lvAt[h.lv]) s.lvAt[h.lv] = G.t;
         if (h.lv>=MAX_LV && s.lv20==null) s.lv20 = G.t;
       }

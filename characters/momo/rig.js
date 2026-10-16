@@ -47,11 +47,10 @@ MOMO.acts.skill1={dur:.62,base:'idle',h:MOMO,
   o.armA=aa;o.armX=ax;o.propA=R.propA+aa*.5;o.lean=ln;o.fF=[30+ln*90,0];o.fB=[-18-ln*30,0];o.hy=R.hy+ln*20;o.head=ln*.3},
  tick(ch,p,k){if(p<.4&&k>=.4){const[x,y]=mpt(ch.mats.handF,0,0);const fx=x+ch.face*30*CS;FXL.flash(fx,y,90,'190,240,255');FXL.ring(fx,y,.5*CS/.62,'170,230,255');hitstop(ch,.07);setShake(.12);
    for(let i=0;i<12;i++){const a=(Math.random()-.5)*1.6+(ch.face>0?0:Math.PI),v=250+Math.random()*350;addFX({x:fx,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,rot:Math.random()*6,life:.5,up:(f,dt)=>{f.x+=f.vx*dt;f.y+=f.vy*dt;f.vy+=500*dt;f.vx*=.96},draw:(f,U,q)=>{ctx.rotate(f.rot+q*4);ctx.globalAlpha=1-q;ctx.fillStyle='#d8f6ff';ctx.strokeStyle='#5ab8e8';ctx.lineWidth=2*U;ctx.beginPath();ctx.moveTo(0,-14*U);ctx.lineTo(6*U,0);ctx.lineTo(0,14*U);ctx.lineTo(-6*U,0);ctx.closePath();ctx.fill();ctx.stroke()}})}}}};
-MOMO.acts.skill2={dur:.75,base:'idle',h:MOMO,start(ch){ch.x0=ch.x},
- pose(o,k){const c=Math.sin(seg(k,0,.3)*Math.PI);o.hy+=c*8;o.sx=1+.1*c;o.sy=1-.1*c;o.armA=-.35*c;o.propA=.12-.3*c},
- tick(ch,p,k){const out=seg(k,.22,.34),inn=seg(k,.42,.56);ch.alpha=k<.34?1-out:k<.42?0:inn;
-  if(p<.22&&k>=.22){for(let i=0;i<10;i++)FXL.star4(ch.x+(Math.random()-.5)*120*CS,-(Math.random()*260)*CS,14+Math.random()*10,'rgba(255,240,170,1)');FXL.flash(ch.x,-130*CS,90,'230,220,255')}
-  if(p<.38&&k>=.38){ch.x=ch.x0+ch.face*330*CS;for(let i=0;i<12;i++)FXL.star4(ch.x+(Math.random()-.5)*120*CS,-(Math.random()*260)*CS,14+Math.random()*12,'rgba(200,230,255,1)');FXL.flash(ch.x,-130*CS,100,'220,230,255')}},end(ch){ch.alpha=1}};
+// 스킬2: 속박 마법진 — 지팡이를 높이 들어 앞쪽 바닥에 마법진 소환 (제자리)
+MOMO.acts.skill2={dur:.7,base:'idle',h:MOMO,
+ pose(o,k){const e=eback(seg(k,0,.3)),r=eio(seg(k,.7,1)),q=e*(1-r);o.armA=lerp(0,-.8,q);o.armX=3*q;o.propA=lerp(.12,-.1,q);o.lean=-.08*q;o.staffGlow=k>.1&&k<.7?1:0},
+ tick(ch,p,k){if(p<.3&&k>=.3)FXL.ring(ch.x+ch.face*200*CS,0,.9*CS/.62,'200,150,255')}};
 MOMO.acts.ult={dur:1.6,base:'idle',h:MOMO,
  pose(o,k){const e=eback(seg(k,0,.25)),r=eio(seg(k,.8,1));o.armA=lerp(0,-1.05,e*(1-r));o.armX=4*e*(1-r);o.propA=lerp(.12,-.05,e*(1-r));o.lean=-.12*e*(1-r);o.head=-.15*e*(1-r);o.staffGlow=k>.1&&k<.8?1:0},
  tick(ch,p,k){if(GAME)return;if(p<.22&&k>=.22){const tx=ch.x+ch.face*320*CS;const sx=tx+ch.face*420,sy=-720;addFX({x:sx,y:sy,tx,life:.55,f:ch.face,

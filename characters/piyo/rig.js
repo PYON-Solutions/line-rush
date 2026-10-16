@@ -69,10 +69,10 @@ function piyoShot(dur,multi,aim){return {dur,base:'idle',h:PIYO,start(ch){ch.fxS
  tick(ch,p,k){if(GAME)return;if(p<.62&&k>=.62&&ch.fxState.nock){const[N,a]=ch.fxState.nock;(multi===3?[-.13,0,.13]:[0]).forEach(d=>shootArrow(ch,N,a+d,aim<-.5?{sp:1700,life:.5,g:0}:{}));if(multi===3)setShake(.06)}
   if(this.rain&&p<.66&&k>=.66){for(let i=0;i<16;i++){const x0=ch.x+ch.face*(140+Math.random()*360)*CS,dl=Math.random()*.6;setTimeoutSim(dl,()=>{const N={x:0,y:0};const[px,py]=W2S(x0-ch.face*120*CS,-760*CS);shootArrow(ch,{x:px,y:py},Math.atan2(1,ch.face*.18),{sp:1500,life:1.2,g:400})})}}}}}
 PIYO.acts.basic=piyoShot(.8,1,-.1);PIYO.acts.skill1=piyoShot(.75,3,-.12);PIYO.acts.ult=piyoShot(1.5,1,-.62);PIYO.acts.ult.rain=true;
-PIYO.acts.skill2={dur:.6,base:'idle',h:PIYO,start(ch){ch.x0=ch.x},
- pose(o,k,ch){const f=Math.sin(ch.t*42);o.wings=.55+.55*f;o.lean=-.22*Math.sin(Math.PI*k);o.footRel=ch.y<-1;if(o.footRel){o.fF=[18,78];o.fB=[-8,84];o.footRotF=-.3}o.shF=-.4;o.elF=-1.2;o.sy=1+.05*Math.sin(Math.PI*k)},
- tick(ch,p,k,dt){ch.x=ch.x0-ch.face*300*CS*eout(k);ch.y=-110*Math.sin(Math.PI*k);if(Math.random()<dt*30)addFX({x:ch.x+(Math.random()-.5)*60*CS,y:(ch.y-110)*CS,vx:(Math.random()-.5)*60,vy:40,r:Math.random()*6,life:.6,up:(f,dt)=>{f.x+=f.vx*dt;f.y+=f.vy*dt;f.r+=dt*3},draw:(f,U,q)=>{ctx.rotate(f.r);ctx.fillStyle=`rgba(255,215,60,${1-q})`;ctx.beginPath();ctx.ellipse(0,0,9*U,3.5*U,0,0,TAU);ctx.fill()}});
-  if(p<1&&k>=1)FXL.dust(ch.x,6,60)},end(ch){ch.y=0}};
+// 스킬2: 끈끈이 덫 — 몸을 숙여 발 앞에 덫을 내려놓음 (제자리)
+PIYO.acts.skill2={dur:.55,base:'idle',h:PIYO,
+ pose(o,k){const c=Math.sin(Math.PI*Math.min(1,k/.8));o.lean=.28*c;o.hy=(o.hy||0)+14*c;o.sy=1-.06*c;o.sx=1+.04*c;o.wings=.3+.4*c;o.head=.15*c;o.shF=.5*c;o.elF=-.3*c},
+ tick(ch,p,k){if(p<.45&&k>=.45)FXL.dust(ch.x+ch.face*70*CS,6,50)}};
 export const FILES=Object.values(PIYO.P).map(p=>p.f).concat(['piyo/arrow_h']);
 PIYO.files=FILES;
 export {drawArrow,shootArrow};

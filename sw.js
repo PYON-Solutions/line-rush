@@ -1,5 +1,5 @@
 // 서비스 워커: 네트워크 우선, 실패 시 캐시 (오프라인 대비). 에셋을 옮기면 PRECACHE 목록도 갱신.
-const CACHE = 'line-rush-v6';
+const CACHE = 'line-rush-v7';
 const PRECACHE = [
   './', 'index.html', 'manifest.json', 'css/style.css',
   'js/fullscreen.js', 'js/data.js', 'js/assets.js', 'js/bootstrap.js', 'js/render3d.js', 'js/models.js', 'js/heroes2d.js', 'js/game.js',
