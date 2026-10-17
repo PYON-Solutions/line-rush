@@ -362,7 +362,7 @@ function useSkill(h, i) {
       const d3 = relT(h,'ult'); fx({kind:'mark', x:tx, life:0.8, r:165*rm, c:'#ffe066'}); later(h, d3, () => G.proj.push({kind:'star', x0:tx-f*260, tx, ty:GROUND, team:h.team, owner:h, dmg:360*m, life:0.8-d3, t0:0.8-d3, r:165*rm, stun:ccDur(h,0.4)})); }
   } else if (k==='turtle') {
     const T = TURTLE;
-    if (i===0) later(h, relT(h,'skill1'), () => { if (h.respawn>0) return; const a = aimAng(h, f)*0.6 - 0.16; G.proj.push({kind:'lasso', g:520, no3d:true, x:h.x+f*24, y:cy(h)-10, vx:Math.cos(a)*f*T.lasso.spd, vy:Math.sin(a)*T.lasso.spd, team:h.team, owner:h, dmg:T.lasso.dmg*m, life:T.lasso.life*Math.min(1.3, rm), life0:T.lasso.life*Math.min(1.3, rm), pull:true, stun:ccDur(h, T.lasso.stun)}); });
+    if (i===0) later(h, relT(h,'skill1'), () => { if (h.respawn>0) return; const a = aimAng(h, f)*0.6 - 0.16; const [lx, ly] = handPos(h, 24, -10); G.proj.push({kind:'lasso', g:520, no3d:true, x:lx, y:ly, vx:Math.cos(a)*f*T.lasso.spd, vy:Math.sin(a)*T.lasso.spd, team:h.team, owner:h, dmg:T.lasso.dmg*m, life:T.lasso.life*Math.min(1.3, rm), life0:T.lasso.life*Math.min(1.3, rm), pull:true, stun:ccDur(h, T.lasso.stun)}); });
     if (i===1) { h.bash = G.t + T.bash.window; h.bashDmg = T.bash.dmg*m; h.bashStun = ccDur(h, T.bash.stun); burst(h.x, cy(h), '#ffd27a', 16); fx({kind:'bubble', ent:h, life:0.4}); }
     if (i===2) { const r = T.quake.r*rm, d = T.quake.dmg*m, sl = T.quake.slow + ccDur(h, T.quake.slowCc); h.quakeT = G.t;
       later(h, relT(h,'ult'), () => { if (h.respawn>0) return; quake(h, r, d, sl, 1); later(h, T.quake.after, () => { if (h.respawn<=0) quake(h, r*1.25, d*T.quake.afterMul, sl*0.6, 0.6); }); }); }
@@ -394,6 +394,8 @@ function useSkill(h, i) {
 }
 // ----- 새 영웅 보조 -----
 // 토토 지팡이 끝(수정) 위치: 브라우저에선 퍼펫이 매 프레임 알려줌(h.tipG), 시뮬/폴백은 놓는 프레임 근사값
+// 단단 손 위치: 브라우저에선 프레임 애니메이션이 매 프레임 알려줌(h.handG, 발 기준 게임 좌표), 시뮬/폴백은 몸 앞 근사값
+function handPos(h, dx = 20, dy = -14) { if (h.handG && h.handT > G.t - 0.25) return [h.x + h.handG[0], h.y + h.handG[1]]; return [h.x + (h.face||1)*dx, cy(h) + dy]; }
 function staffTip(h, kind) { if (h.tipG && h.tipT > G.t - 0.25) return [h.x + h.tipG[0], h.y + h.tipG[1]]; const s = 1 + 0.15*Math.min(1,(h.lv-1)/19);
   return kind==='bomb' ? [h.x + h.face*30*s, h.y - 118*s] : [h.x + h.face*52*s, h.y - 70*s]; }
 function bashHit(h, t, dmgA) { // 단단 등껍질 박치기: 강화 타격 + 띄우기(짧은 기절)
@@ -1205,7 +1207,7 @@ function drawSkillFx(camX0) {
       ctx.rotate(tt*1.5); ctx.beginPath(); for (let i=0;i<=5;i++){ const an=i*2.513; ctx.lineTo(Math.cos(an)*p.r*0.72, Math.sin(an)*p.r*0.72); } ctx.stroke();
       ctx.restore(); ctx.globalAlpha = 1;
       if (!p.fired) for (let i=0;i<3;i++){ const an = tt*4+i*2.1; ctx.fillStyle='#f0e0ff'; ctx.beginPath(); ctx.arc(x+Math.cos(an)*p.r*0.8, p.y+Math.sin(an)*p.r*0.24-k*30, 3, 0, 6.28); ctx.fill(); } }
-    else if (p.kind==='lasso') { const q = 1 - p.life/p.life0; drawVine(p.owner.x + Math.sign(p.vx)*20, cy(p.owner)-14, p.x, p.y, tt, 1, 1.4 - q*0.6, p.vx); }
+    else if (p.kind==='lasso') { const q = 1 - p.life/p.life0; const [hx, hy] = handPos(p.owner, Math.sign(p.vx)*20); drawVine(hx, hy, p.x, p.y, tt, 1, 1.4 - q*0.6, p.vx); }
     else if (p.kind==='dagger') { const a = Math.atan2(p.vy, p.vx); ctx.save(); ctx.translate(x, p.y);
       ctx.globalAlpha = 0.5; ctx.strokeStyle = '#b07aff'; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-Math.cos(a)*50, -Math.sin(a)*50); ctx.stroke(); ctx.globalAlpha = 1;
       ctx.rotate(a - Math.PI/2 + tt*0); glow(0, 0, 9, 'rgba(180,120,255,0.8)'); const im = IMG.sal_dagger; if (im && im.naturalWidth) ctx.drawImage(im, -im.width*0.11, -im.height*0.12, im.width*0.22, im.height*0.22); ctx.restore(); }
@@ -1298,7 +1300,7 @@ function drawSkillFx(camX0) {
       ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(x, f.y-20, R2, 0, 6.28); ctx.fill(); ctx.globalAlpha = a; ctx.strokeStyle = '#d8ff9a'; ctx.lineWidth = 5*a; ctx.beginPath(); ctx.ellipse(x, f.y, R2*1.2, R2*0.28, 0, 0, 6.28); ctx.stroke();
       ctx.fillStyle = '#7ccf3a'; for (let i=0;i<8;i++){ const an = i*0.785+0.3, d = R2*0.9; ctx.beginPath(); ctx.ellipse(x+Math.cos(an)*d, f.y-20+Math.sin(an)*d*0.6, 6, 3, an, 0, 6.28); ctx.fill(); } }
     else if (f.kind==='root') { ctx.globalAlpha = a; ctx.strokeStyle = '#6aa83a'; ctx.lineWidth = 4; ctx.lineCap = 'round'; const up = Math.sin(Math.min(1,k*3)*Math.PI*0.5)*34*a; for (const dx of [-12, 0, 12]) { ctx.beginPath(); ctx.moveTo(x+dx, f.y); ctx.quadraticCurveTo(x+dx+8, f.y-up*0.5, x+dx-2, f.y-up); ctx.stroke(); } }
-    else if (f.kind==='vine') { if (f.owner && f.ent && isAlive(f.ent)) { ctx.globalAlpha = a; drawVine(f.owner.x + f.owner.face*20, cy(f.owner)-14, f.ent.x, cy(f.ent), tt, a, f.taut ? 0.12 : 1); } }
+    else if (f.kind==='vine') { if (f.owner && f.ent && isAlive(f.ent)) { ctx.globalAlpha = a; const [hx, hy] = handPos(f.owner); drawVine(hx, hy, f.ent.x, cy(f.ent), tt, a, f.taut ? 0.12 : 1); } }
     else if (f.kind==='muzzle') { const k = f.t/f.life, r = 22*(f.s||1)*(0.6+k*0.8); ctx.save(); ctx.globalCompositeOperation = 'lighter'; const g2 = ctx.createRadialGradient(x, f.y, 1, x, f.y, r); g2.addColorStop(0, `rgba(255,255,230,${1-k})`); g2.addColorStop(0.4, `rgba(${f.c},${0.8*(1-k)})`); g2.addColorStop(1, `rgba(${f.c},0)`); ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(x, f.y, r, 0, 6.28); ctx.fill(); ctx.restore(); }
     else if (f.kind==='wrap') { const e = f.ent; if (e && isAlive(e)) { const x = e.x, y = cy(e), k = f.t/f.life; ctx.save(); ctx.globalAlpha = Math.min(1, (1-k)*2.5); ctx.lineCap='round';
       for (let j=0;j<3;j++) { const yy = y - 16 + j*16, rw = (e.w/2+8)*(0.7+0.3*Math.min(1,f.t*12)); for (const [w,c] of [[6,'#2f4a14'],[3.5,'#7aa83a'],[1.2,'#c8f08a']]) { ctx.strokeStyle=c; ctx.lineWidth=w; ctx.beginPath(); ctx.ellipse(x, yy, rw, 7, -0.15, tt*9+j, tt*9+j+Math.PI*1.6*Math.min(1,f.t*10)); ctx.stroke(); } }
