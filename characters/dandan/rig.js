@@ -65,6 +65,10 @@ DAN.acts.ult={dur:1.25,base:'idle',h:DAN,
  tick(ch,p,k,dt){if(k>.35&&k<.62){const q=seg(k,.35,.62);ch.y=-160*Math.sin(Math.PI*q)}else ch.y=0;
   if(p<.62&&k>=.62){ch.y=0;FXL.ring(ch.x,0,1.6*CS/.62,'220,190,120');FXL.ring(ch.x,0,1.1*CS/.62,'255,240,170');FXL.flash(ch.x,-40*CS,140,'255,235,170');FXL.dust(ch.x,18,260);FXL.spark(ch.x,0,22,'#c9a46a',600,7);setShake(.45);hitstop(ch,.12)}},
  end(ch){ch.y=0}};
+// 게임에서는 퍼펫 대신 프레임 애니메이션(AI 영상 → WebP 아틀라스)으로 그림: js/heroes2d.js + characters/common/frames.js
+// 아틀라스 다시 만들기: tools/dandan_frames/ (build.py → pack.py, fx.py). 퍼펫(위 P/acts)은 캐릭터 뷰어용으로 남겨 둠
+DAN.frames={json:'dandan/frames/dandan.json',fx:'dandan/fx/fx.json',worldH:2.62,
+ act:{basic:'attack',basic3:'attack',bash:'bash',skill1:'skill1',skill2:'skill2',ult:'ult',pull:'pull'}};
 export const FILES=Object.values(DAN.P).map(p=>p.f);
 DAN.files=FILES;
 export default DAN;
