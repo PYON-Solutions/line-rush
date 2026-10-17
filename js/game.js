@@ -275,7 +275,7 @@ function updHero(h, dt) {
   if (h.stun>0) h.inputX = 0;
   if (h.dash) { if (!h.dash.snd) { h.dash.snd=1; if (onScreen(h)) sfx('boom',0.4); } h.dash.t -= dt; h.vx = h.dash.vx;
     for (const e of enemiesOf(h.team)) if (!h.dash.hit.has(e) && Math.abs(e.x-h.x)<55 && Math.abs(cy(e)-cy(h))<70) { h.dash.hit.add(e); damage(h,e,h.dash.dmg,{kb:h.face*520, stun:h.dash.stun||0.4, pc:'#ffcf6a'}); shake=Math.max(shake,6);}
-    if (h.dash.t<=0) h.dash=null; }
+    if (h.dash.t<=0) { if (h.dash.ult) ultSmash(h); h.dash=null; } }
   else if (h.kbv) { h.vx = h.kbv; h.kbv *= Math.pow(0.02, dt); if (Math.abs(h.kbv)<20) h.kbv=0; }
   else h.vx = h.inputX * spd * (h.atkLock>0 ? 0.25 : 1);
   if (h.root>0 && !h.kbv) h.vx = 0;
@@ -348,7 +348,7 @@ function useSkill(h, i) {
   if (k==='bear') {
     if (i===0) { if (!h.ground) return false; h.vy = -560; h.ground=false; h.slam = {dmg:85*m, r:130*rm, stun:ccDur(h,0.6)}; }
     if (i===1) { h.shield = 3 + G.teams[h.team].skill[1]*0.5; burst(h.x, cy(h), '#ffcc33', 20); fx({kind:'bubble', ent:h, life:0.4}); }
-    if (i===2) { h.dash = {t:0.38*Math.min(1.3, rm), vx:f*950, dmg:210*m, stun:ccDur(h,0.4), hit:new Set()}; shake=Math.max(shake,4); }
+    if (i===2) { h.dash = {t:0.38*Math.min(1.3, rm), vx:f*950, dmg:210*m, stun:ccDur(h,0.4), hit:new Set(), ult:true}; shake=Math.max(shake,4); }
   } else if (k==='chick') {
     if (i===0) later(h, relT(h,'skill1'), () => { if (h.respawn>0) return; const a0 = aimAng(h, f); for (const da of [-0.18,0,0.18]) { const a = a0+da; G.proj.push({kind:'arrow', x:h.x+f*20, y:cy(h)-6, vx:Math.cos(a)*f*760, vy:Math.sin(a)*760, team:h.team, owner:h, dmg:72*m, life:0.6*rangeMul(h), big:true}); } });
     if (i===1) { h.traps = (h.traps||[]).filter(p=>!p.dead); if (h.traps.length>=2) { h.traps[0].dead = true; h.traps.shift(); }
@@ -452,6 +452,12 @@ function updSpirits(h, dt) {
     q.dart = {t:0, tgt:best, x:h.x + dir*(reach - j*14), y:cy(h) - 44 - j*12, shot:false};
   }
 }
+// 곰 돌진 마무리: 돌진이 끝나면 BEAR_SMASH 초 뒤 망치 내려찍기 연출 (피해 없음 — 밸런스는 돌진 중 밀쳐내기 그대로). 프레임 애니메이션이 h.ultSmash 시점에 타격 프레임을 맞춤
+const BEAR_SMASH = 0.16;
+function ultSmash(h) { h.ultSmash = G.t + BEAR_SMASH; later(h, BEAR_SMASH, () => { if (h.respawn>0 || h.dead) return; const x = h.x + h.face*50;
+  shake = Math.max(shake, 13); G.hitstop = Math.max(G.hitstop||0, 0.09); if (onScreen(h)) sfx('boom', 0.8);
+  G.parts.push({ring:true, x, y:h.y, t:0, life:0.4, r:150, c:'#ffe6a0'}); fx({kind:'crack', x, y:h.y, r:110, life:0.9, seed:Math.random()*99}); fx({kind:'dust', x, y:h.y, r:120, life:0.7});
+  for (let i=0;i<18;i++) G.parts.push({x:x+rand(-60,60), y:h.y, vx:rand(-160,160), vy:rand(-340,-90), t:0, life:0.6, c:i%3?'#c9a46a':'#ffd66a', r:rand(3,6), g:true}); }); }
 function doSlam(h) {
   const s = h.slam; h.slam = null; shake = Math.max(shake, 10); G.hitstop = 0.07; if (onScreen(h)) sfx('boom', 0.7);
   for (let i=0;i<26;i++) G.parts.push({x:h.x+rand(-s.r,s.r), y:h.y, vx:rand(-80,80), vy:rand(-300,-80), t:0, life:0.6, c:'#c9a46a', r:rand(3,6), g:true});

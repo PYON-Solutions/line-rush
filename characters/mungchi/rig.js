@@ -49,6 +49,14 @@ MUNG.acts.ult={dur:.85,base:'run',runSpeed:2.4,h:MUNG,
  pose(o,k){const a=seg(k,0,.15),e=eio(a),r=eio(seg(k,.85,1));o.lean=lerp(.13,.45,e)*(1-r);o.shF=-1.45;o.elF=-.35;o.propA=-.15;o.hy+= (1-a)*10;},
  tick(ch,p,k,dt){ch.trailOn=k>.12&&k<.9;if(k>.15&&k<.85){ch.x+=ch.face*1500*CS*dt;if(Math.random()<dt*40){const yy=-(40+Math.random()*260)*CS;addFX({x:ch.x-ch.face*60*CS,y:yy,life:.25,f:ch.face,draw:(f,U,q)=>{ctx.strokeStyle=`rgba(255,255,255,${.7*(1-q)})`;ctx.lineWidth=3*U;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-f.f*(80+q*120)*U,0);ctx.stroke()}})}if(Math.random()<dt*25)FXL.dust(ch.x,1,30)}
   if(p<.85&&k>=.85){const[hx,hy]=mpt(ch.mats.ham,100,0);FXL.ring(hx,0,1.1*CS/.62);FXL.flash(hx,hy,90);FXL.spark(hx,hy,12,'#ffe9a0',450);setShake(.25);hitstop(ch,.08)}},end(ch){ch.trailOn=false}};
+// 게임에서는 퍼펫 대신 프레임 애니메이션(AI 영상 → WebP 아틀라스)으로 그림: js/heroes2d.js + characters/common/frames.js
+// 아틀라스 다시 만들기: tools/mungchi_frames/ (keycache.py → build.py → pack.py). 영상 VFX 는 단단 것(characters/dandan/fx)을 금색으로 물들여 공유
+// 퍼펫(위 P/acts)은 캐릭터 뷰어용으로 남겨 둠
+MUNG.frames={json:'mungchi/frames/mungchi.json',fx:'dandan/fx/fx.json',worldH:3.29,
+ act:{basic:'attack',basic3:'attack',skill1:'skill1',skill2:'skill2',ult:'ultrun'},
+ postRate:{attack:1.15,ultfin:1},            // 타격 프레임 이후 재생 속도 (공격 주기 안에서 회복 동작이 다 보이도록)
+ noInt:['skill1','ultrun','ultfin'],         // 피격/기절로 끊지 않는 동작
+ recallTint:0xffd877,orbTint:0xffc44a,arriveTint:0xfff0b0,partC:[0xffe08a,0xffffff,0xffc44a],partC2:[0xffd060,0xffffff]};
 export const FILES=Object.values(MUNG.P).map(p=>p.f);
 MUNG.files=FILES;
 export default MUNG;

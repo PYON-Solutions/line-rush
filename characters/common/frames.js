@@ -3,7 +3,7 @@
 //  · FrameAnim: 동작 재생기 (fps, loop, pingpong, loopFrom, key 프레임 콜백, 재생 속도)
 //  · makeFrameSprite(set, worldH): 아틀라스 UV 를 바꿔 끼우는 평면 메쉬 (좌우 반전, 피격 번쩍임, 투명도)
 //  · loadFxSheet / FxPlayer: 검은 배경 영상 이펙트(휘도 알파) 시트를 가산 블렌딩 평면으로 재생
-// JSON 형식(characters/<hero>/frames/<hero>.json): {box:[w,h], anchor:[ax,ay], atlases:[{file,w,h}], actions:{name:{fps,loop,key?,loopFrom?,pingpong?,frames:[{r:[atlas,x,y,w,h], o:[ox,oy], hand?:[hx,hy]}]}}}
+// JSON 형식(characters/<hero>/frames/<hero>.json): {box:[w,h], anchor:[ax,ay], atlases:[{file,w,h}], actions:{name:{fps,loop,key?,loopFrom?,pingpong?,loopFps?,air?,land?,frames:[{r:[atlas,x,y,w,h], o:[ox,oy], hand?:[hx,hy]}]}}}
 //  o = 공통 크롭 박스 안에서 잘린 프레임의 위치, anchor = 발 기준선/몸 중심 (모든 동작 공통이라 동작이 바뀌어도 캐릭터가 튀지 않음)
 //  hand = 앵커 기준 손 위치(px, 오른쪽을 볼 때) — 올가미 줄을 코드로 그릴 때 시작점
 import * as THREE from '../../vendor/three.module.js';
@@ -38,7 +38,8 @@ export class FrameAnim {
     const A = this.A, n = A.frames.length; let f = Math.floor(this.t * A.fps);
     if (A.loop) {
       const L0 = A.loopFrom || 0;
-      if (f >= L0) { const m = n - L0; if (A.pingpong && m > 1) { const p = 2 * m - 2, q = (f - L0) % p; f = L0 + (q < m ? q : p - q); } else f = L0 + (f - L0) % m; }
+      // loopFps: 루프 구간만 다른 속도로 (예: 귀환 인트로는 빠르게, 숨쉬기 루프는 느리게)
+      if (f >= L0) { const m = n - L0, d = A.loopFps ? Math.floor((this.t - L0 / A.fps) * A.loopFps) : f - L0; if (A.pingpong && m > 1) { const p = 2 * m - 2, q = d % p; f = L0 + (q < m ? q : p - q); } else f = L0 + d % m; }
     } else if (f >= n) f = n - 1;
     this.idx = f; return f;
   }

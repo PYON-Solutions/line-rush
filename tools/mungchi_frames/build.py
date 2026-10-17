@@ -12,7 +12,7 @@ A={
  'attack':dict(d='raw_atk2',f=[4,10,14,17,20,23,26,29,33,38,43,48,54],fps=16,loop=False,key=6),
  # skill1: 0..7 공중(게임 점프 속도 vy로 프레임 선택), 8 = 내려찍기 착지(doSlam) 순간, 이후 회복
  'skill1':dict(d='raw_s1c',f=[28,32,36,40,44,48,52,55,58,61,66,72,80,86,90,94,97],fps=20,loop=False,key=8,footnorm='air'),
- 'skill2':dict(d='raw_s2',f=[13,17,20,23,26,29,33,37,41,45,49,53,56,59,62,66,70],fps=24,loop=False),
+ 'skill2':dict(d='raw_s2',f=[13,17,20,23,26,29,33,37,41,45,49,53,56,59,62,66,70],fps=24,loop=False,key=6),
  # ult: 돌진 중 달리기 루프(raw_ult 39..51, 주기 13프레임 → 52≈39) → 돌진 끝에 마무리 내려찍기 (raw_ultc 16-35 = raw_ult2)
  'ultrun':dict(d='raw_ult',f=[34,39,41,43,45,47,49,51],fps=14,loop=True,loopFrom=1),
  'ultfin':dict(d='raw_ultc',ref='raw_ult2',f=[18,20,22,23,24,25,26,27,28,29,30,31,32,33,34,35],fps=16,loop=False,key=6),
@@ -20,7 +20,7 @@ A={
  'jump':  dict(d='raw_jump',f=R(28,61,3),fps=16,loop=False,footnorm='all',air=[1,6],land=7),
  'dash':  dict(d='raw_dash',f=[31,34,40,46,52,58,61,64,67,70],fps=28,loop=False),
  # recall: 인트로(망치 내려놓고 두 손 모음) 12프레임 → 고요한 숨쉬기 루프(왕복, loopFps)
- 'recall':dict(d='raw_recall',f=R(1,45,4)+R(49,97,6),fps=8,loop=True,loopFrom=12,pingpong=True,loopFps=4),
+ 'recall':dict(d='raw_recall',f=R(1,45,4)+R(49,97,6),fps=8,loop=True,loopFrom=12,pingpong=True,loopFps=4,hand=dict(start=8,xy=[60,-110])),   # 모은 두 손(앵커 기준 px) — 귀환 에너지 구슬 위치
  'hit':   dict(d='raw_hit',f=R(16,58,6),fps=26,loop=False),
  'death': dict(d='raw_death',f=R(52,73,2),fps=12,loop=False),
  # turn: 오른쪽 → 왼쪽(끝 = 기본 자세 좌우 반전). 머리 중심을 앵커에 고정(영상 속 이동 제거), 발은 기준선
@@ -67,6 +67,8 @@ for act,L in placed.items():
         # sub-pixel placement: paste at integer pos (error < .5px at out scale)
         fn=f'{act}_{j:02d}.png'; im.save(f'{W}/out/frames/{fn}')
         fr.append(dict(file=fn,src=i,off=[int(round(x-x0)),int(round(y-y0))],size=list(im.size)))
+        hd=o.get('hand')
+        if hd and j>=hd['start']: fr[-1]['hand']=hd['xy']
     m=dict(fps=round(o['fps'],3),loop=o['loop'],frames=fr)
     for kk in ('key','loopFrom','pingpong','loopFps','air','land'):
         if kk in o: m[kk]=o[kk]

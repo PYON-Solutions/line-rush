@@ -12,6 +12,7 @@ const PRECACHE = [
   'characters/mungchi/rig.js', 'characters/piyo/rig.js', 'characters/momo/rig.js', 'characters/dandan/rig.js', 'characters/salang/rig.js', 'characters/toto/rig.js', 'characters/common/cutout.js', 'characters/common/keypose.js',
   'characters/common/frames.js', 'characters/dandan/frames/dandan.json', 'characters/dandan/frames/dandan_0.webp', 'characters/dandan/frames/dandan_1.webp', 'characters/dandan/frames/dandan_2.webp',
   'characters/dandan/fx/fx.json', 'characters/dandan/fx/fx_quake.webp', 'characters/dandan/fx/fx_impact.webp', 'characters/dandan/fx/fx_recall.webp',
+  'characters/mungchi/frames/mungchi.json', 'characters/mungchi/frames/mungchi_0.webp', 'characters/mungchi/frames/mungchi_1.webp', 'characters/mungchi/frames/mungchi_2.webp',
   'ui/icons/icon-192.png', 'ui/icons/icon-512.png',
 ];
 self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).catch(() => {})); });

@@ -197,6 +197,7 @@ function fxAdd(F, m, sheet, o, world) {
 }
 function frameKeyFx(F, m, name, e) {
   const f = F.face, sc = m.userData.heroScale || 1;
+  if (F.hero.key === 'mungchi') return mungKeyFx(F, m, name, e, f, sc);
   if (name === 'attack') fxAdd(F, m, 'impact', { w: 1.1 * sc, x: f * 1.55 * sc, y: 1.15 * sc, fps: 36, to: 8, alpha: 0.75 }, true);
   else if (name === 'bash') { fxAdd(F, m, 'impact', { w: 2.6 * sc, x: f * 1.05 * sc, y: 1.0 * sc, fps: 30 }, true); fxAdd(F, m, 'impact', { w: 1.4 * sc, x: f * 1.0 * sc, y: 1.0 * sc, fps: 40, to: 6, tint: 0xffe08a }, true); }
   else if (name === 'ult') {
@@ -207,6 +208,61 @@ function frameKeyFx(F, m, name, e) {
     // 여진(TURTLE.quake.after 초 뒤 작은 진동)
     F.after = { t: T.after || 0.42, w: w * 0.85 };
   }
+}
+// 뭉치: 망치 머리 위치(앵커 기준 월드, 오른쪽 볼 때) — 타격 프레임에서 잰 값
+const MUNG_HAM = { attack: [1.41, 0.42], skill1: [1.33, 0.39], ultfin: [1.47, 0.5] };
+function mungKeyFx(F, m, name, e, f, sc) {
+  const H = MUNG_HAM[name], hx = H ? f * H[0] * sc : 0, hy = H ? H[1] * sc : 0, lv = e.lv || 1, rk = Math.min(1.5, 1 + 0.025 * (lv - 1));
+  const wpos = () => { const p = new THREE.Vector3(); m.getWorldPosition(p); return p; };
+  if (name === 'attack') {
+    const big = F.lastAct === 'basic3';
+    fxAdd(F, m, 'impact', { w: (big ? 2.1 : 1.35) * sc, x: hx, y: hy + 0.15, fps: big ? 30 : 38, to: big ? 12 : 8, tint: 0xfff0c8, alpha: big ? 1 : 0.85 }, true);
+    if (big) fxAdd(F, m, 'quake', { w: 2.6 * sc, x: hx, bottom: true, y: -0.45, z: 0.45, fps: 18, from: 1, alpha: 0.7, fadeOut: 0.25, renderOrder: 4.6 }, true);
+    const p = wpos(); burst(p.x + hx, p.y + hy, p.z + .4, { n: big ? 14 : 7, tex: T.star, color: [0xffe9a0, 0xffffff], spd: big ? 3 : 2, size: big ? .3 : .22, life: .35, g: 6, spread: .4, add: true });
+  } else if (name === 'skill1') {   // 쿵 내려찍기 착지: 땅 갈라짐(영상) + 큰 충격파 + 먼지/돌 파편 (게임: 기절·흔들림·히트스톱)
+    const r = 130 * rk, w = 2 * r * GSCALE * 1.05;
+    fxAdd(F, m, 'quake', { w, bottom: true, y: -0.5, z: 0.45, fps: 15, fadeOut: 0.35, alpha: 0.95, renderOrder: 4.6 }, true);
+    fxAdd(F, m, 'impact', { w: 2.6 * sc, x: hx, y: hy + 0.1, z: 0.5, fps: 30, tint: 0xffe6a0, gain: 1.2 }, true);
+    F.after = { t: 0.3, w: w * 0.8 };
+    const p = wpos(); burst(p.x + hx, p.y + 0.2, p.z + .4, { n: 16, tex: T.glow, color: [0xd9b77a, 0xfff0c0], spd: 3.2, size: .45, life: .55, g: -1, spread: 1.2, add: true });
+    burst(p.x + hx, p.y + 0.3, p.z + .4, { n: 14, tex: T.star, color: [0xffe066, 0xffffff], spd: 4, size: .3, life: .45, g: 8, spread: .6, add: true });
+  } else if (name === 'skill2') {   // 꿀 방패 발동: 몸에서 금빛 폭발 + 꿀방울
+    fxAdd(F, m, 'impact', { w: 3.0 * sc, y: 1.2 * sc, z: 0.4, fps: 28, tint: 0xffc840, gain: 1.3 }, true);
+    const p = wpos(); burst(p.x, p.y + 1.2 * sc, p.z + .4, { n: 18, tex: T.glow, color: [0xffb820, 0xffe27a, 0xffffff], spd: 2.6, size: .35, life: .6, g: -3, spread: .8, spreadY: .8, add: true });
+  } else if (name === 'ultfin') {   // 곰 돌진 마무리 내려찍기: 큰 충격파 2겹 + 섬광 + 여진
+    fxAdd(F, m, 'quake', { w: 6.2 * sc * rk, x: hx * 0.6, bottom: true, y: -0.55, z: 0.45, fps: 14, fadeOut: 0.4, alpha: 1, gain: 1.15, tint: 0xffe2a8, renderOrder: 4.6 }, true);
+    fxAdd(F, m, 'impact', { w: 3.6 * sc, x: hx, y: hy + 0.2, z: 0.5, fps: 28, tint: 0xffe08a, gain: 1.5 }, true);
+    fxAdd(F, m, 'impact', { w: 1.8 * sc, x: hx, y: hy + 0.2, z: 0.55, fps: 40, to: 7, tint: 0xffffff, gain: 1.2 }, true);
+    const fl = glowSprite(0xffe6a0, 1); fl.renderOrder = 7.5; fl.position.set(hx, hy + 0.3, 0.5); m.add(fl); F.flash = { s: fl, t: 0 };
+    F.after = { t: 0.32, w: 5.2 * sc * rk };
+    const p = wpos(); burst(p.x + hx, p.y + 0.3, p.z + .4, { n: 26, tex: T.star, color: [0xffe066, 0xffd0a0, 0xffffff], spd: 5, size: .38, life: .6, g: 8, spread: 1, add: true });
+    burst(p.x + hx, p.y + 0.1, p.z + .4, { n: 20, tex: T.glow, color: [0xc9a46a, 0xfff0c0], spd: 3.5, size: .55, life: .6, g: -1, spread: 1.8, add: true });
+  }
+}
+function mungUpdate(F, A, e, m, face, play) {
+  const L = window.__LR, G = L && L.G, moving = Math.abs(e.vx || 0) > 10 && e.ground !== false;
+  // 쿵 내려찍기: 게임 코드가 높이(vy=-560 포물선)를 주므로 영상의 점프 높이는 빌드에서 제거, 공중 동안 vy에 따라 0..key-1 프레임 → 착지하면 key(내려찍기)부터
+  if (F.one === 'skill1' && F.slamT) {
+    const K = A.A.key;
+    if (e.slam && e.ground === false) { const q = Math.max(0, Math.min(1, ((e.vy || 0) + 560) / 1120)); A.rate = 0; A.t = (Math.min(K - 1, Math.round(q * (K - 1))) + 0.5) / A.A.fps; A.frameAt(); }
+    else if (!e.slam) { F.slamT = false; A.rate = 1; A.t = K / A.A.fps; }
+  }
+  // 곰 돌진: 돌진(h.dash) 동안 달리기 루프, 끝나면 마무리 — 타격 프레임이 game.js ultSmash 시점(h.ultSmash)에 오도록 속도 조절
+  if (F.one === 'ultrun' && !e.dash) {
+    const left = G && e.ultSmash ? e.ultSmash - G.t : 0.16, kt = A.keyTime('ultfin');
+    F.face = face; play('ultfin', { rate: Math.max(1, Math.min(4, kt / Math.max(0.04, left))), hold: 0.04, onKey: () => { A.rate = 1; frameKeyFx(F, m, 'ultfin', e); } });
+  }
+  // 움직이면 끊어도 되는 동작: 꿀 방패 시전(0.35초 뒤), 마무리 내려찍기의 회복 부분
+  if (moving && ((F.one === 'skill2' && A.t > 0.35) || (F.one === 'ultfin' && A.keyFired && A.idx >= A.A.key + 3))) F.one = null;
+  // 꿀 방패 지속(3초+): 몸이 금빛으로 맥동 + 뒤쪽 꿀빛 후광 + 떨어지는 꿀방울/반짝이 (둥근 방패막은 game.js 오버레이가 그림)
+  const sh = e.shield > 0 && !(e.respawn > 0);
+  if (sh) {
+    if (!F.honey) { const g = glowSprite(0xffb020, 3.2); g.renderOrder = 4.4; g.position.set(0, 1.15, -0.06); g.scale.set(2.6, 3.2, 1); m.userData.body.add(g); F.honey = { g, t: 0, d: 0 }; }
+    const Hn = F.honey; Hn.t += 1 / 60; const pu = 0.5 + 0.5 * Math.sin(Hn.t * 7);
+    F.S.setTint(0xffc030, 0.1 + 0.1 * pu); Hn.g.material.opacity = Math.min(1, Hn.t * 4) * (0.45 + 0.2 * pu); Hn.g.scale.set(2.5 + 0.2 * pu, 3.1 + 0.2 * pu, 1);
+    Hn.d += 1 / 60; if (Hn.d > 0.09) { Hn.d = 0; const p = new THREE.Vector3((Math.random() - .5) * 1.6, 0.4 + Math.random() * 1.8, 0.2); m.userData.body.localToWorld(p);
+      burst(p.x, p.y, p.z, { n: 1, tex: Math.random() < .5 ? T.star : T.glow, color: [0xffb820, 0xffe27a, 0xffffff], spd: 0.4, size: 0.16 + Math.random() * 0.12, life: 0.7, g: 2.5, add: true }); }
+  } else if (F.honey) { F.S.setTint(0xffffff, 0); F.honey.g.parent && F.honey.g.parent.remove(F.honey.g); F.honey.g.material.dispose(); F.honey = null; }
 }
 function setBase(F, name, o) { if (F.base === name && F.A.is(name)) return; F.base = name; F.A.play(name, o); }
 function updateFrameHero(m, e, dt) {
@@ -222,19 +278,21 @@ function updateFrameHero(m, e, dt) {
     if (F.FS.actions[name]) {
       const kt = A.keyTime(name), rt = ((window.HERO_RELEASE || {})[P.gameKey] || {})[a];
       const rate = kt && rt ? Math.max(0.6, Math.min(3, kt / rt)) : 1;
-      F.face = face;
-      play(name, { rate, hold: name === 'skill1' ? 0.28 : name === 'pull' ? 0.15 : 0.04, onKey: () => frameKeyFx(F, m, name, e) });
+      F.face = face; F.lastAct = a; const pr = (F.hero.frames.postRate || {})[name];
+      play(name, { rate, hold: F.hero.key === 'mungchi' ? 0.04 : name === 'skill1' ? 0.28 : name === 'pull' ? 0.15 : 0.04, onKey: () => { if (pr) A.rate = pr; frameKeyFx(F, m, name, e); } });
+      if (F.hero.key === 'mungchi' && name === 'skill1') { F.slamT = true; A.rate = 0; }   // 공중 프레임은 아래에서 vy로 선택
       if (name === 'pull' && G) { const t = G.ents.find(x => x.yank && x.yank.owner === e); if (t) { const sc = 1; fxAdd(F, m, 'impact', { w: 2.2 * sc, x: (t.x - e.x) * GSCALE, y: (e.y - (t.y - t.h / 2)) * GSCALE, fps: 30, tint: 0xd8ffb0 }, true); } }
     }
   }
   // 2) 대시
-  const dfx = e.dashFx || 0; if (dfx > F.pdash + 0.5 && F.one !== 'ult') play('dash'); F.pdash = dfx;
+  const noInt = F.hero.frames.noInt || ['ult'], locked = noInt.includes(F.one);
+  const dfx = e.dashFx || 0; if (dfx > F.pdash + 0.5 && !locked) play('dash'); F.pdash = dfx;
   // 3) 피격: 기절 시작 / 큰 피해(최대 체력 4%+)일 때만, 스킬 동작은 끊지 않음
   F.hitCd = Math.max(0, F.hitCd - dt);
   const hpDrop = F.php == null ? 0 : F.php - (e.hp || 0); F.php = e.hp;
   const stunStart = e.stun > 0 && !(F.pstun > 0); F.pstun = e.stun || 0;
   const softOne = !F.one || F.one === 'turn' || F.one === 'land' || F.one === 'hit';
-  if ((stunStart && F.one !== 'ult') || (e.maxHp && hpDrop > e.maxHp * 0.04 && F.hitCd <= 0 && softOne && F.one !== 'hit')) { play('hit', { hold: e.stun > 0 ? Math.min(1.5, e.stun) : 0.05 }); F.hitCd = 1.0; }
+  if ((stunStart && !locked) || (e.maxHp && hpDrop > e.maxHp * 0.04 && F.hitCd <= 0 && softOne && F.one !== 'hit')) { play('hit', { hold: e.stun > 0 ? Math.min(1.5, e.stun) : 0.05 }); F.hitCd = 1.0; }
   // 4) 방향 전환: turn 영상은 오른쪽→왼쪽. 왼쪽으로 돌 땐 그대로, 오른쪽으로 돌 땐 좌우 반전 (끝 프레임 = 반대쪽 대기 자세)
   if (face !== F.face) {
     F.face = face;
@@ -244,13 +302,17 @@ function updateFrameHero(m, e, dt) {
   if (F.one === 'turn' && !ground) F.one = null;
   // 5) 점프 / 착지
   if (!ground) F.air = true;
-  else if (F.air) { F.air = false; if (!F.one) { play('jump', { t0: 5 / F.FS.actions.jump.fps }); F.one = 'land'; } }
+  else if (F.air) { F.air = false; if (!F.one) { const J = F.FS.actions.jump; play('jump', { t0: (J.land != null ? J.land : 5) / J.fps }); F.one = 'land'; } }
+  // 뭉치 전용: 쿵 내려찍기(공중 = 게임 점프 vy로 프레임 선택 → 착지(doSlam) 순간 타격 프레임), 곰 돌진(달리기 루프 → 돌진 끝 마무리 내려찍기), 꿀 방패(움직이면 시전 동작 끊김)
+  if (F.hero.key === 'mungchi') mungUpdate(F, A, e, m, face, play);
   // 지속 동작
   A.update(dt);
   if (F.one && A.done) F.one = null;
   if (!F.one) {
     F.mirror = face < 0;
-    if (!ground) { setBase(F, 'jump'); A.rate = 0; const vy = e.vy || 0; A.t = ((vy < -380 ? 1 : vy < -120 ? 2 : vy < 160 ? 3 : 4) + 0.5) / A.A.fps; A.frameAt(); }
+    if (!ground) { setBase(F, 'jump'); A.rate = 0; const vy = e.vy || 0, J = A.A;
+      const i = J.air ? J.air[0] + Math.round(Math.max(0, Math.min(1, (vy + 600) / 1200)) * (J.air[1] - J.air[0])) : (vy < -380 ? 1 : vy < -120 ? 2 : vy < 160 ? 3 : 4);
+      A.t = (i + 0.5) / J.fps; A.frameAt(); }
     else if (e.recall) setBase(F, 'recall');
     else if (Math.abs(e.vx || 0) > 10) { setBase(F, 'walk'); A.fpsMul = Math.max(0.6, Math.min(1.5, Math.abs(e.vx) / ((e.d && e.d.spd) || 205))); }
     else setBase(F, 'idle');
@@ -261,9 +323,10 @@ function updateFrameHero(m, e, dt) {
   if (e.recall) {
     F.recT = e.recall.t; F.recK = Math.max(0, Math.min(1, 1 - e.recall.t / (e.recall.t0 || 4)));
     if (!F.rec && RF) {
-      F.rec = [fxAdd(F, m, 'recall', { w: 3.0, bottom: true, y: -0.15, z: -0.05, loop: true, to: RF.loopN, fadeIn: 0.35, gain: 2.2, renderOrder: 4.7 }),
-        fxAdd(F, m, 'recall', { w: 2.1, bottom: true, y: -0.1, z: 0.25, loop: true, to: RF.loopN, fadeIn: 0.5, gain: 1.3, alpha: 0.55, fps: 15 })];
-      const tc = 0xc8ff8a;
+      const RT = F.hero.frames.recallTint;
+      F.rec = [fxAdd(F, m, 'recall', { w: 3.0, bottom: true, y: -0.15, z: -0.05, loop: true, to: RF.loopN, fadeIn: 0.35, gain: 2.2, renderOrder: 4.7, tint: RT }),
+        fxAdd(F, m, 'recall', { w: 2.1, bottom: true, y: -0.1, z: 0.25, loop: true, to: RF.loopN, fadeIn: 0.5, gain: 1.3, alpha: 0.55, fps: 15, tint: RT })];
+      const tc = F.hero.frames.orbTint || 0xc8ff8a;
       F.orb = { core: glowSprite(0xffffff, 0.3), halo: glowSprite(tc, 0.8), ring: glowSprite(tc, 2.4), t: 0 };
       F.orb.core.renderOrder = 6.6; F.orb.halo.renderOrder = 6.5; F.orb.ring.renderOrder = 1.6; F.orb.ring.scale.set(2.6, 0.55, 1);
       m.userData.body.add(F.orb.core, F.orb.halo, F.orb.ring);
@@ -271,12 +334,13 @@ function updateFrameHero(m, e, dt) {
   } else if (F.rec) {
     F.rec.forEach(x => x && x.stop()); F.rec = null;
     if (F.recT < 0.15 && RF) {   // 도착!
-      fxAdd(F, m, 'recall', { w: 3.6, bottom: true, y: -0.15, z: 0.3, from: RF.loopN, fps: 10, fadeOut: 0.25, gain: 2.4 });
-      fxAdd(F, m, 'impact', { w: 4.2, y: 1.2, z: 0.4, fps: 26, tint: 0xe8ffc0, gain: 1.6 });
-      const fl = glowSprite(0xf4ffd8, 1); fl.renderOrder = 7.5; fl.position.set(0, 1.2, 0.5); m.add(fl); F.flash = { s: fl, t: 0 };
+      const AT = F.hero.frames.arriveTint;
+      fxAdd(F, m, 'recall', { w: 3.6, bottom: true, y: -0.15, z: 0.3, from: RF.loopN, fps: 10, fadeOut: 0.25, gain: 2.4, tint: F.hero.frames.recallTint });
+      fxAdd(F, m, 'impact', { w: 4.2, y: 1.2, z: 0.4, fps: 26, tint: AT || 0xe8ffc0, gain: 1.6 });
+      const fl = glowSprite(AT || 0xf4ffd8, 1); fl.renderOrder = 7.5; fl.position.set(0, 1.2, 0.5); m.add(fl); F.flash = { s: fl, t: 0 };
       const p = new THREE.Vector3(); m.getWorldPosition(p);
-      burst(p.x, p.y + 1.1, p.z + .4, { n: 28, tex: T.star, color: [0xd8ff9a, 0xffffff, 0xfff2a0], spd: 3.6, size: .4, life: .8, g: -1.2, spread: 1.4, spreadY: .8, add: true });
-      burst(p.x, p.y + 0.2, p.z + .4, { n: 16, tex: T.glow, color: [0xb8ff70, 0xffffff], spd: 2.2, size: .6, life: .6, g: -3, spread: 1.6, add: true });
+      burst(p.x, p.y + 1.1, p.z + .4, { n: 28, tex: T.star, color: F.hero.frames.partC || [0xd8ff9a, 0xffffff, 0xfff2a0], spd: 3.6, size: .4, life: .8, g: -1.2, spread: 1.4, spreadY: .8, add: true });
+      burst(p.x, p.y + 0.2, p.z + .4, { n: 16, tex: T.glow, color: F.hero.frames.partC2 || [0xb8ff70, 0xffffff], spd: 2.2, size: .6, life: .6, g: -3, spread: 1.6, add: true });
     }
     if (F.orb) F.orb.fade = 1;
   }
@@ -289,7 +353,7 @@ function updateFrameHero(m, e, dt) {
     O.core.scale.setScalar(r * 0.55); O.halo.scale.setScalar(r * 1.2); O.ring.position.set(0, 0.06, 0.05); O.ring.scale.set(2.2 + 1.4 * k, 0.45 + 0.25 * k, 1);
     O.core.material.opacity = a; O.halo.material.opacity = a * (0.6 + 0.4 * k); O.ring.material.opacity = a * (0.35 + 0.55 * k) * (0.85 + 0.15 * Math.sin(O.t * 9));
     if (Math.random() < dt * (6 + 30 * k) && a > 0.5) { const p = new THREE.Vector3(hw[0], hw[1], 0.15); m.userData.body.localToWorld(p);
-      burst(p.x, p.y, p.z, { n: 1, tex: T.glow, color: [0xd8ff9a, 0xffffff], spd: 0.6 + k, size: 0.12 + 0.12 * k, life: 0.5, g: -1.5, spread: 0.5, add: true }); }
+      burst(p.x, p.y, p.z, { n: 1, tex: T.glow, color: F.hero.frames.partC2 || [0xd8ff9a, 0xffffff], spd: 0.6 + k, size: 0.12 + 0.12 * k, life: 0.5, g: -1.5, spread: 0.5, add: true }); }
     if (O.fade != null && O.fade <= 0) { [O.core, O.halo, O.ring].forEach(x => { x.parent && x.parent.remove(x); x.material.dispose(); }); F.orb = null; }
   }
   if (F.flash) { const L2 = F.flash; L2.t += dt; const q = L2.t / 0.45; L2.s.scale.setScalar(1.5 + 7 * Math.sqrt(q)); L2.s.material.opacity = Math.max(0, 1 - q) * 1.2;
