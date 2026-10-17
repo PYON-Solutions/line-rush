@@ -346,7 +346,7 @@ function useSkill(h, i) {
   const m = skillMul(h,i), f = h.face, k = h.key, rm = radMul(h);
   fx({kind:'charge', ent:h, life:0.32, c:['#ffd27a','#9fe0ff','#ffe066'][i], big:i===2});
   if (k==='bear') {
-    if (i===0) { if (!h.ground) return false; h.vy = -560; h.ground=false; h.slam = {dmg:85*m, r:130*rm, stun:ccDur(h,0.6)}; }
+    if (i===0) { if (!h.ground) return false; h.vy = -560; h.ground=false; h.slam = {dmg:110*m, r:130*rm, stun:ccDur(h,0.6)}; }
     if (i===1) { h.shield = 3 + G.teams[h.team].skill[1]*0.5; burst(h.x, cy(h), '#ffcc33', 20); fx({kind:'bubble', ent:h, life:0.4}); }
     if (i===2) { h.dash = {t:0.38*Math.min(1.3, rm), vx:f*950, dmg:210*m, stun:ccDur(h,0.4), hit:new Set(), ult:true}; shake=Math.max(shake,4); }
   } else if (k==='chick') {
@@ -355,11 +355,11 @@ function useSkill(h, i) {
       const tp = {kind:'trap', x:clamp(h.x+f*70, 40, WORLD_W-40), y:h.y, team:h.team, owner:h, dmg:70*m, r:48*rm, slow:ccDur(h,1.0)+0.8, root:ccDur(h,0.3), life:20, arm:0.5}; h.traps.push(tp); later(h, relT(h,'skill2'), () => { if (!tp.dead) G.proj.push(tp); }); }
     if (i===2) { const cx = h.x + f*260; later(h, relT(h,'ult'), () => G.proj.push({kind:'rain', x:cx, y:0, team:h.team, owner:h, dmg:42*m, life:2.2, tick:0, w:320*rm})); }
   } else if (k==='cat') {
-    if (i===0) later(h, relT(h,'skill1'), () => { if (h.respawn>0) return; const a = aimAng(h, f); G.proj.push({kind:'ice', x:h.x+f*20, y:cy(h)-6, vx:f*620*Math.cos(a), vy:620*Math.sin(a), team:h.team, owner:h, dmg:115*m, life:0.7*rangeMul(h), slow:2}); });
+    if (i===0) later(h, relT(h,'skill1'), () => { if (h.respawn>0) return; const a = aimAng(h, f); G.proj.push({kind:'ice', x:h.x+f*20, y:cy(h)-6, vx:f*620*Math.cos(a), vy:620*Math.sin(a), team:h.team, owner:h, dmg:105*m, life:0.7*rangeMul(h), slow:2}); });
     if (i===1) { let tx = h.x + f*200; const eh = G.teams[1-h.team].hero; let ty = h.y; if (isAlive(eh) && Math.abs(eh.x-h.x)<380 && Math.sign(eh.x-h.x)===f) { tx = eh.x; ty = eh.y; }
       const d2 = relT(h,'skill2'); later(h, d2, () => G.proj.push({kind:'circle', x:clamp(tx,40,WORLD_W-40), y:ty, team:h.team, owner:h, dmg:60*m, r:105*rm, root:ccDur(h,0.7), delay0:0.7-d2, life:0.7-d2+0.5})); }
     if (i===2) { let tx = h.x + f*280; const eh = G.teams[1-h.team].hero; if (isAlive(eh) && Math.abs(eh.x-h.x)<520) tx = eh.x;
-      const d3 = relT(h,'ult'); fx({kind:'mark', x:tx, life:0.8, r:165*rm, c:'#ffe066'}); later(h, d3, () => G.proj.push({kind:'star', x0:tx-f*260, tx, ty:GROUND, team:h.team, owner:h, dmg:360*m, life:0.8-d3, t0:0.8-d3, r:165*rm, stun:ccDur(h,0.4)})); }
+      const d3 = relT(h,'ult'); fx({kind:'mark', x:tx, life:0.8, r:165*rm, c:'#ffe066'}); later(h, d3, () => G.proj.push({kind:'star', x0:tx-f*260, tx, ty:GROUND, team:h.team, owner:h, dmg:330*m, life:0.8-d3, t0:0.8-d3, r:165*rm, stun:ccDur(h,0.4)})); }
   } else if (k==='turtle') {
     const T = TURTLE;
     if (i===0) later(h, relT(h,'skill1'), () => { if (h.respawn>0) return; const a = aimAng(h, f)*0.6 - 0.16; const [lx, ly] = handPos(h, 24, -10); G.proj.push({kind:'lasso', g:520, no3d:true, x:lx, y:ly, vx:Math.cos(a)*f*T.lasso.spd, vy:Math.sin(a)*T.lasso.spd, team:h.team, owner:h, dmg:T.lasso.dmg*m, life:T.lasso.life*Math.min(1.3, rm), life0:T.lasso.life*Math.min(1.3, rm), pull:true, stun:ccDur(h, T.lasso.stun)}); });
@@ -370,7 +370,7 @@ function useSkill(h, i) {
     const F2 = FOX;
     if (i===0) later(h, relT(h,'skill1'), () => { if (h.respawn>0) return; h.x = clamp(h.x + f*14, 40, WORLD_W-40); const reach = F2.slash.reach*Math.sqrt(rm);  // 반 발짝만 (이동기 아님)
       fx({kind:'xslash', x:h.x+f*70, y:cy(h)-4, f, life:0.35}); shake = Math.max(shake, 5);
-      for (const e of enemiesOf(h.team, {dragon:true})) { const dx = (e.x-h.x)*f; if (dx > -20 && dx < reach+e.w/2 && Math.abs(cy(e)-cy(h)) < 80) damage(h, e, F2.slash.dmg*m*(e.kind==='minion' ? 1.6 : 1)*(h.clone && e.hp < e.maxHp*F2.lowHp ? F2.lowMul : 1), {pc:'#d9a8ff', color:'#e6c8ff'}); } });
+      for (const e of enemiesOf(h.team, {dragon:true})) { const dx = (e.x-h.x)*f; if (dx > -20 && dx < reach+e.w/2 && Math.abs(cy(e)-cy(h)) < 80) damage(h, e, F2.slash.dmg*m*(e.kind==='minion' ? 1.3 : 1)*(h.clone && e.hp < e.maxHp*F2.lowHp ? F2.lowMul : 1), {pc:'#d9a8ff', color:'#e6c8ff'}); } });
     if (i===1) later(h, relT(h,'skill2'), () => { if (h.respawn>0) return; const a = aimAng(h, f); G.proj.push({kind:'dagger', no3d:true, x:h.x+f*20, y:cy(h)-8, vx:Math.cos(a)*f*F2.mark.spd, vy:Math.sin(a)*F2.mark.spd, team:h.team, owner:h, dmg:F2.mark.dmg*m, life:F2.mark.life, mark:{dur:F2.mark.dur + F2.mark.durLv*lvK(h), mul:F2.mark.mul}}); });
     if (i===2) later(h, relT(h,'ult'), () => { if (h.respawn>0) return; h.clone = {end:G.t + F2.clone.dur + ultTier(h), mul:F2.clone.mul*(1+0.3*ultTier(h))*(1+0.25*G.teams[h.team].skill[2]), atkT:0.25, seq:0, t0:G.t};
       burst(h.x - f*45, cy(h), '#b07aff', 26); fx({kind:'smoke', x:h.x - f*45, y:h.y, life:0.6}); shake = Math.max(shake, 6); });
