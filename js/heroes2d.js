@@ -50,6 +50,7 @@ export function makePuppetHero(gameKey, team) {
     const A = new FrameAnim(FS); A.play('idle');
     grp.userData.frames = { S, A, FS, FX: FXSETS[hero.key], hero, face: team ? -1 : 1, one: null, base: 'idle', seq: 0, pdash: 0, pstun: 0, php: null, hitCd: 0, fx: [], rec: null, recT: 0, air: false, canvasDirty: true };
     plane.visible = false;
+    if (typeof window !== 'undefined') (window.__FRH = window.__FRH || []).push(grp.userData.frames);   // 디버그/미리보기 캡처용
   }
   // 영웅마다 독립된 이펙트 리스트
   grp.userData.puppet = { ch, cv, g, tex, team, fx: [], simq: [], seq: 0, gameKey };
@@ -200,17 +201,19 @@ function frameKeyFx(F, m, name, e) {
   else if (name === 'bash') { fxAdd(F, m, 'impact', { w: 2.6 * sc, x: f * 1.05 * sc, y: 1.0 * sc, fps: 30 }, true); fxAdd(F, m, 'impact', { w: 1.4 * sc, x: f * 1.0 * sc, y: 1.0 * sc, fps: 40, to: 6, tint: 0xffe08a }, true); }
   else if (name === 'ult') {
     const T = typeof TURTLE !== 'undefined' ? TURTLE.quake : { r: 185 }, lv = e.lv || 1;
-    const r = T.r * Math.min(1.5, 1 + 0.025 * (lv - 1)), w = 2 * r * GSCALE * 1.25;
-    fxAdd(F, m, 'quake', { w, bottom: true, y: -0.4, z: 0.45, fps: 13, fadeOut: 0.35, renderOrder: 4.6 }, true);
-    fxAdd(F, m, 'impact', { w: 3.2, y: 0.6, z: 0.5, fps: 30, to: 9, tint: 0xffe6a0 }, true);
+    const r = T.r * Math.min(1.5, 1 + 0.025 * (lv - 1)), w = 2 * r * GSCALE * 0.8;
+    fxAdd(F, m, 'quake', { w, bottom: true, y: -0.5, z: 0.45, fps: 13, fadeOut: 0.35, alpha: 0.9, renderOrder: 4.6 }, true);
+    fxAdd(F, m, 'impact', { w: 2.6, y: 0.5, z: 0.5, fps: 30, to: 9, tint: 0xffe6a0, alpha: 0.8 }, true);
     // 여진(TURTLE.quake.after 초 뒤 작은 진동)
-    F.after = { t: T.after || 0.42, w: w * 1.15 };
+    F.after = { t: T.after || 0.42, w: w * 0.85 };
   }
 }
 function setBase(F, name, o) { if (F.base === name && F.A.is(name)) return; F.base = name; F.A.play(name, o); }
 function updateFrameHero(m, e, dt) {
   const F = m.userData.frames, A = F.A, S = F.S, P = m.userData.puppet; dt = Math.min(0.05, dt || 0.016);
-  const face = e.face < 0 ? -1 : 1, ground = e.ground !== false, L = window.__LR, G = L && L.G;
+  const face = e.face < 0 ? -1 : 1, ground = e.ground !== false, L = window.__LR, G = L && L.scene === 'match' ? L.G : null;
+  // 경기 중엔 게임 시간(G.t) 기준으로 재생: 렌더 dt(고정 1/60)와 달리 실제 경과·배속·히트스톱을 그대로 따라가서 key 프레임이 타격 시점과 맞음
+  if (G && e.kind === 'hero') { const d = G.t - (F.gt == null ? G.t - dt : F.gt); F.gt = G.t; dt = d >= 0 && d < 0.25 ? d : dt; }
   const play = (name, o = {}) => { if (!A.play(name, o)) return false; F.one = name; F.base = null; F.mirror = o.mirror != null ? o.mirror : face < 0; return true; };
   // 1) 공격·스킬 (game.js: h.animAct / h.animSeq)
   if ((e.animSeq || 0) !== F.seq) {
@@ -230,7 +233,7 @@ function updateFrameHero(m, e, dt) {
   F.hitCd = Math.max(0, F.hitCd - dt);
   const hpDrop = F.php == null ? 0 : F.php - (e.hp || 0); F.php = e.hp;
   const stunStart = e.stun > 0 && !(F.pstun > 0); F.pstun = e.stun || 0;
-  const softOne = !F.one || F.one === 'turn' || F.one === 'land' || F.one === 'hit' || F.one === 'dash';
+  const softOne = !F.one || F.one === 'turn' || F.one === 'land' || F.one === 'hit';
   if ((stunStart && F.one !== 'ult') || (e.maxHp && hpDrop > e.maxHp * 0.04 && F.hitCd <= 0 && softOne && F.one !== 'hit')) { play('hit', { hold: e.stun > 0 ? Math.min(1.5, e.stun) : 0.05 }); F.hitCd = 1.0; }
   // 4) 방향 전환: turn 영상은 오른쪽→왼쪽. 왼쪽으로 돌 땐 그대로, 오른쪽으로 돌 땐 좌우 반전 (끝 프레임 = 반대쪽 대기 자세)
   if (face !== F.face) {
