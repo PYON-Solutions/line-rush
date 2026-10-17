@@ -221,7 +221,7 @@ function mungKeyFx(F, m, name, e, f, sc) {
     const p = wpos(); burst(p.x + hx, p.y + hy, p.z + .4, { n: big ? 14 : 7, tex: T.star, color: [0xffe9a0, 0xffffff], spd: big ? 3 : 2, size: big ? .3 : .22, life: .35, g: 6, spread: .4, add: true });
   } else if (name === 'skill1') {   // 쿵 내려찍기 착지: 땅 갈라짐(영상) + 큰 충격파 + 먼지/돌 파편 (게임: 기절·흔들림·히트스톱)
     const r = 130 * rk, w = 2 * r * GSCALE * 1.05;
-    fxAdd(F, m, 'quake', { w, bottom: true, y: -0.5, z: 0.45, fps: 15, fadeOut: 0.35, alpha: 0.95, renderOrder: 4.6 }, true);
+    fxAdd(F, m, 'quake', { w, bottom: true, y: -0.5, z: 0.45, fps: 15, fadeOut: 0.35, alpha: 0.95, tint: 0xffe0a0, gain: 1.1, renderOrder: 4.6 }, true);
     fxAdd(F, m, 'impact', { w: 2.6 * sc, x: hx, y: hy + 0.1, z: 0.5, fps: 30, tint: 0xffe6a0, gain: 1.2 }, true);
     F.after = { t: 0.3, w: w * 0.8 };
     const p = wpos(); burst(p.x + hx, p.y + 0.2, p.z + .4, { n: 16, tex: T.glow, color: [0xd9b77a, 0xfff0c0], spd: 3.2, size: .45, life: .55, g: -1, spread: 1.2, add: true });
@@ -259,10 +259,19 @@ function mungUpdate(F, A, e, m, face, play) {
   if (sh) {
     if (!F.honey) { const g = glowSprite(0xffb020, 3.2); g.renderOrder = 4.4; g.position.set(0, 1.15, -0.06); g.scale.set(2.6, 3.2, 1); m.userData.body.add(g); F.honey = { g, t: 0, d: 0 }; }
     const Hn = F.honey; Hn.t += 1 / 60; const pu = 0.5 + 0.5 * Math.sin(Hn.t * 7);
-    F.S.setTint(0xffc030, 0.1 + 0.1 * pu); Hn.g.material.opacity = Math.min(1, Hn.t * 4) * (0.45 + 0.2 * pu); Hn.g.scale.set(2.5 + 0.2 * pu, 3.1 + 0.2 * pu, 1);
+    F.S.setTint(0xffc030, 0.05 + 0.06 * pu); Hn.g.material.opacity = Math.min(1, Hn.t * 4) * (0.45 + 0.2 * pu); Hn.g.scale.set(2.5 + 0.2 * pu, 3.1 + 0.2 * pu, 1);
     Hn.d += 1 / 60; if (Hn.d > 0.09) { Hn.d = 0; const p = new THREE.Vector3((Math.random() - .5) * 1.6, 0.4 + Math.random() * 1.8, 0.2); m.userData.body.localToWorld(p);
       burst(p.x, p.y, p.z, { n: 1, tex: Math.random() < .5 ? T.star : T.glow, color: [0xffb820, 0xffe27a, 0xffffff], spd: 0.4, size: 0.16 + Math.random() * 0.12, life: 0.7, g: 2.5, add: true }); }
   } else if (F.honey) { F.S.setTint(0xffffff, 0); F.honey.g.parent && F.honey.g.parent.remove(F.honey.g); F.honey.g.material.dispose(); F.honey = null; }
+  // 귀환: 단단과 같은 영상 빛 기둥(금빛) 위에 넓은 금빛 기둥 + 위로 솟는 반짝이 (채널 진행만큼 굵고 밝아짐)
+  if (e.recall && !(e.respawn > 0)) {
+    if (!F.pil) { const g = glowSprite(0xffd060, 1); g.renderOrder = 4.6; g.position.set(0, 2.7, -0.04); m.userData.body.add(g); F.pil = { g, t: 0, d: 0 }; }
+    const Pl = F.pil, k = F.recK || 0; Pl.t += 1 / 60; Pl.fade = null;
+    Pl.g.scale.set(1.2 + 1.3 * k + 0.12 * Math.sin(Pl.t * 11), 6.8, 1); Pl.g.material.opacity = Math.min(1, Pl.t * 2) * (0.3 + 0.45 * k);
+    Pl.d += 1 / 60; if (Pl.d > 0.11 - 0.07 * k) { Pl.d = 0; const p = new THREE.Vector3((Math.random() - .5) * (1 + k), 0.15, 0.2); m.userData.body.localToWorld(p);
+      burst(p.x, p.y, p.z, { n: 1, tex: Math.random() < .6 ? T.star : T.glow, color: [0xffe27a, 0xffffff, 0xffc44a], spd: 0.3, size: 0.14 + 0.14 * k, life: 1.0, g: -2.2, vy0: 1.6 + 1.5 * k, add: true }); }
+  } else if (F.pil) { const Pl = F.pil; Pl.fade = (Pl.fade == null ? 1 : Pl.fade) - 1 / 60 * 4; Pl.g.material.opacity *= 0.85;
+    if (Pl.fade <= 0) { Pl.g.parent && Pl.g.parent.remove(Pl.g); Pl.g.material.dispose(); F.pil = null; } }
 }
 function setBase(F, name, o) { if (F.base === name && F.A.is(name)) return; F.base = name; F.A.play(name, o); }
 function updateFrameHero(m, e, dt) {
@@ -377,7 +386,7 @@ function updateFrameHero(m, e, dt) {
 }
 function frameDeath(m, e, D, dt) {
   const F = m.userData.frames, S = F.S, t = D.t, dir = D.dir, sc = m.userData.heroScale || 1;
-  if (!D.started) { D.started = true; F.A.play('death'); F.one = 'death'; F.mirror = (e.face || F.face) < 0; F.rec && F.rec.forEach(x => x && x.stop()); F.rec = null; if (F.orb) { [F.orb.core, F.orb.halo, F.orb.ring].forEach(x => { x.parent && x.parent.remove(x); x.material.dispose(); }); F.orb = null; } }
+  if (!D.started) { D.started = true; [F.honey, F.pil].forEach(x => { if (x) { x.g.parent && x.g.parent.remove(x.g); x.g.material.dispose(); } }); F.honey = F.pil = null; S.setTint(0xffffff, 0); F.A.play('death'); F.one = 'death'; F.mirror = (e.face || F.face) < 0; F.rec && F.rec.forEach(x => x && x.stop()); F.rec = null; if (F.orb) { [F.orb.core, F.orb.halo, F.orb.ring].forEach(x => { x.parent && x.parent.remove(x); x.material.dispose(); }); F.orb = null; } }
   F.A.update(dt); S.show(F.A.frame, F.mirror);
   // 맞은 방향으로 살짝 밀려남 + 작은 튀어오름 (프레임이 넘어지는 동작을 보여줌)
   const air = .45, ta = Math.min(t, air), kx = 1 - Math.pow(1 - ta / air, 2);
