@@ -6,7 +6,8 @@ BOX=(0,-40,736,400)            # logical crop box in source px (same for all act
 def U(a,b,n): return [int(round(a+(b-a)*i/n)) for i in range(n)]
 # per action: frames (src idx), fps, loop, key (index of hit/release frame), options
 A={
- 'idle':  dict(src='idle',f=U(42,79,8),fps=5.2,loop=True),
+ # idle: 원본은 12fps 내용(짝수 프레임마다 새 그림) → 42..78 매 2프레임 = 19프레임 @12fps (1.58초). 80≈42 이므로 끝 3프레임을 36/38/40 쪽으로 크로스페이드해 이음매 없이 루프
+ 'idle':  dict(src='idle',f=list(range(42,79,2)),fps=12,loop=True,xfade=dict(n=3,off=38)),
  'walk':  dict(src='walk',f=list(range(8,29,2)),fps=12,loop=True),
  'turn':  dict(src='turn',f=[5,7,23,25,29],fps=36,loop=False,dx={5:-20,7:-45,23:-95,25:-122,29:-134}),
  'attack':dict(src='attack',f=[7,10,13,16,46,49],fps=16,loop=False,key=3,fadeR=600),
@@ -43,6 +44,10 @@ for act in only:
     o=A[act];fr=[]
     for i in o['f']:
         a=load(o['src'],i)
+        xf=o.get('xfade')
+        if xf:   # 루프 끝 n프레임: 루프 시작 직전 프레임(i-off)과 섞어 첫 프레임으로 자연스럽게 이어지게
+            k=o['f'].index(i)-(len(o['f'])-xf['n'])
+            if k>=0: w=(k+1)/(xf['n']+1); a=(a.astype(np.float32)*(1-w)+load(o['src'],i-xf['off']).astype(np.float32)*w).round().astype(np.uint8)
         k=key(a,shadow_y=o.get('shadow')).astype(np.float32)
         k=fix_edges(k.astype(np.uint8)).astype(np.float32)
         al=k[...,3]/255
