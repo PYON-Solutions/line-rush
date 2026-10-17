@@ -9,7 +9,7 @@ const PRECACHE = [
   'dragons/dragon.png', 'dragons/forest.png', 'dragons/sand.png', 'dragons/ice.png',
   'dragons/dragon_rig/atlas.png', 'dragons/dragon_rig/rig.json', 'dragons/forest_rig/atlas.png', 'dragons/forest_rig/rig.json', 'dragons/sand_rig/atlas.png', 'dragons/sand_rig/rig.json', 'dragons/ice_rig/atlas.png', 'dragons/ice_rig/rig.json',
   'characters/index.js', 'characters/common/index.js', 'characters/common/core.js', 'characters/common/ik.js', 'characters/common/effects.js', 'characters/common/puppet.js',
-  'characters/mungchi/rig.js', 'characters/piyo/rig.js', 'characters/momo/rig.js', 'characters/dandan/rig.js', 'characters/salang/rig.js', 'characters/toto/rig.js', 'characters/common/cutout.js',
+  'characters/mungchi/rig.js', 'characters/piyo/rig.js', 'characters/momo/rig.js', 'characters/dandan/rig.js', 'characters/salang/rig.js', 'characters/toto/rig.js', 'characters/common/cutout.js', 'characters/common/keypose.js',
   'ui/icons/icon-192.png', 'ui/icons/icon-512.png',
 ];
 self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).catch(() => {})); });
