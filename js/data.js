@@ -2,7 +2,7 @@
 const WORLD_W = 4400, VIEW_H = 450, GROUND = 382;
 const HEROES = {
   bear: { name:'뭉치', role:'곰 전사 · 근접', img:'h_bear', color:'#c98a4b',
-    hp:1070, hpL:62, atk:78, atkL:5, mana:[45,60,140], range:80, as:0.85, spd:210, armor:0.13, proj:null, lifesteal:0.05,
+    hp:1070, hpL:62, atk:80, atkL:5, mana:[45,60,140], range:80, as:0.85, spd:210, armor:0.13, proj:null, lifesteal:0.05,
     skills:[
       {name:'쿵 내려찍기', cd:10, desc:'점프 후 내려찍어 주변 기절 (레벨에 따라 범위·기절 증가)'},
       {name:'꿀 방패', cd:14, desc:'3초간 받는 피해 35% 감소'},
@@ -42,7 +42,7 @@ const HEROES = {
 const TURTLE = { lasso:{dmg:100, spd:950, life:0.40, stun:0.28}, bash:{window:5, dmg:110, stun:0.55, lift:480},
   quake:{dmg:270, r:185, slow:1.5, slowCc:0.5, after:0.42, afterMul:0.4} };
 const FOX = { slash:{dmg:195, reach:175}, mark:{dmg:55, spd:950, life:0.45, dur:3, durLv:1.5, mul:0.45}, clone:{dur:6, mul:0.65}, lowHp:0.4, lowMul:1.3 };
-const RABBIT = { spirit:{dur:8, dmg:32, cd:0.9, range:320}, bomb:{dmg:85, r:85, slow:1.2, slowCc:0.6},
+const RABBIT = { spirit:{dur:8, dmg:29, cd:0.9, range:320}, bomb:{dmg:85, r:85, slow:1.2, slowCc:0.6},
   tree:{dur:5, dmg:45, hit:80, every:0.5, r:130, structMul:1.6} };
 // 영웅 레벨 1~20: LEVEL_XP[n] = 레벨 n+1 이 되는 누적 경험치 (구간 = 100 + 40×(n-1))
 const MAX_LV = 20;
