@@ -50,7 +50,7 @@ function start(){setWorld({CS:.62*(+Q.get('scale')||1)});build();
 function ui(){const hb=document.getElementById('heroes'),ab=document.getElementById('acts');
  hb.innerHTML=Object.entries(HEROES).map(([k,h])=>`<button data-h="${k}" class="${k===heroKey?'on':''}">${h.name}</button>`).join('');
  const names={mungchi:['기본공격(3타 콤보)','쿵 내려찍기','꿀 방패','곰 돌진'],piyo:['기본공격(활)','삼연발','날개 대시','화살비'],momo:['기본공격(오브)','얼음 냥펀치','속박 마법진','별똥별'],dandan:['기본공격(주먹)','덩굴 올가미','등껍질 박치기','대지 진동'],salang:['기본공격(단검)','그림자 베기','그림자 표식','그림자 분신'],toto:['기본공격(씨앗)','당근 정령 소환','씨앗 폭탄','거대 당근 나무']}[heroKey];
- ab.innerHTML=[...(heroKey==='dandan'?['bash:박치기 강화타']:[]),'demo:데모','idle:대기','run:달리기','jump:점프','basic:'+names[0],'skill1:'+names[1],'skill2:'+names[2],'ult:'+names[3],'flip:방향전환'].map(s=>{const[a,l]=s.split(':');return `<button data-a="${a}">${l}</button>`}).join('');
+ ab.innerHTML=[...(heroKey==='dandan'?['bash:박치기 강화타','pull:올가미 당기기']:[]),'demo:데모','idle:대기','run:달리기','jump:점프','basic:'+names[0],'skill1:'+names[1],'skill2:'+names[2],'ult:'+names[3],'flip:방향전환'].map(s=>{const[a,l]=s.split(':');return `<button data-a="${a}">${l}</button>`}).join('');
  hb.querySelectorAll('button').forEach(b=>b.onclick=()=>{heroKey=b.dataset.h;demoOn=true;build();ui()});
  ab.querySelectorAll('button').forEach(b=>b.onclick=()=>{const c=chars[0],a=b.dataset.a;if(a==='demo'){demoOn=true;build();return}if(a==='flip'){c.face*=-1;return}c.demo=false;demoOn=false;doAction(c,a)})}
 addEventListener('keydown',e=>{const c=chars[0];if(!c)return;if(e.key==='ArrowRight'||e.key==='ArrowLeft'){c.demo=false;c.face=e.key==='ArrowRight'?1:-1;if(c.mode!=='run')setMode(c,'run')}

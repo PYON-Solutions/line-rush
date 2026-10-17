@@ -31,12 +31,21 @@ DAN.acts.bash={dur:.62,base:'idle',h:DAN,
  pose(o,k){let ln,st;if(k<.3){const e=eio(k/.3);ln=lerp(0,-.25,e);st=0}else if(k<.45){const e=eout(seg(k,.3,.45));ln=lerp(-.25,.55,e);st=e}else{const e=eio(seg(k,.55,1));ln=lerp(.55,0,e);st=1-e}
   o.lean=ln;o.shellTilt=-ln*.6;o.shF=-.4-ln;o.shB=-.6;o.fF=[24+st*44,0];o.fB=[-20-st*16,0];o.hy=R.hy+st*16;o.head=ln*.4},
  tick(ch,p,k){if(p<.45&&k>=.45){const x=ch.x+ch.face*90*CS,y=-180*CS;FXL.flash(x,y,90,'255,230,150');FXL.ring(x,0,.8*CS/.62,'255,220,140');FXL.spark(x,y,14,'#ffd27a',450);FXL.dust(x,8,60);setShake(.25);hitstop(ch,.1)}}};
-// 스킬1 덩굴 올가미: 고리를 머리 위로 돌리다 앞으로 던짐 (놓는 프레임 k=.42)
-DAN.acts.skill1={dur:.7,base:'idle',h:DAN,
- pose(o,k){let a,ln;if(k<.3){const q=k/.3;a=lerp(R.shF,-2.8,eio(Math.min(1,q*1.4)));ln=lerp(0,-.12,q)}else if(k<.42){const e=eout(seg(k,.3,.42));a=lerp(-2.8,-1.45,e);ln=lerp(-.12,.2,e)}else{const e=eio(seg(k,.6,1));a=lerp(-1.45,R.shF,e);ln=lerp(.2,0,e)}
-  o.shF=a;o.lean=ln;o.propA=a+(k<.42?Math.sin(k*40)*1.2:0);o.noCoil=k>.42&&k<.9;o.fF=[24+ln*70,0];o.head=-ln*.2},
- tick(ch,p,k,dt){if(k<.42&&Math.random()<dt*30){const[x,y]=mpt(ch.mats.handF,0,0);FXL.spark(x,y,1,'#a8d860',120,4,0)}
-  if(p<.42&&k>=.42){const[x,y]=mpt(ch.mats.handF,0,0);FXL.flash(x,y,60,'190,240,140');FXL.swoosh(ch.x,(ch.y-160)*CS,ch.face,150*CS,-2.4,.1,'rgba(160,220,90,.9)')}}};
+// 스킬1 덩굴 올가미: 머리 위로 고리를 빙빙 돌리며 감아올림(0~.33, 약 0.23초) → 크게 휘둘러 던짐 (놓는 프레임 k=.42) → 팔을 뻗은 채 줄을 잡고 있음
+DAN.acts.skill1={dur:.75,base:'idle',h:DAN,
+ pose(o,k){let a,ln,b;
+  if(k<.33){const q=eio(Math.min(1,k/.12));a=lerp(R.shF,-2.95,q);ln=lerp(0,-.14,q);b=lerp(R.shB,.5,q)}
+  else if(k<.42){const e=eout(seg(k,.33,.42));a=lerp(-2.95,-1.15,e);ln=lerp(-.14,.26,e);b=lerp(.5,.9,e)}
+  else{const e=eio(seg(k,.62,1));a=lerp(-1.15,R.shF,e);ln=lerp(.26,0,e);b=lerp(.9,R.shB,e)}
+  o.shF=a;o.shB=b;o.lean=ln;o.propA=k<.33?k*58:k<.42?a+.6:a;o.noCoil=k>.42&&k<.92;o.fF=[24+ln*90,0];o.fB=[-20-ln*30,0];o.hy=R.hy+Math.abs(ln)*14;o.head=-ln*.25},
+ tick(ch,p,k,dt){if(k<.33){const[x,y]=mpt(ch.mats.handF,0,0);if(Math.random()<dt*40)FXL.spark(x,y,1,'#a8d860',160,4,0);if(p<.12&&k>=.12)FXL.ring(x,y,.35*CS/.62,'190,240,140')}
+  if(p<.42&&k>=.42){const[x,y]=mpt(ch.mats.handF,0,0);FXL.flash(x,y,70,'190,240,140');FXL.swoosh(ch.x,(ch.y-170)*CS,ch.face,170*CS,-2.6,.12,'rgba(160,220,90,.95)');FXL.spark(x,y,10,'#c8f08a',380);setShake(.12)}}};
+// 올가미가 맞았을 때: 뒤로 젖히며 두 손으로 확 잡아당김 (게임에서 명중 시 재생)
+DAN.acts.pull={dur:.55,base:'idle',h:DAN,
+ pose(o,k){const e=eout(seg(k,0,.22)),r=eio(seg(k,.6,1)),q=e*(1-r);
+  o.lean=-.32*q;o.shF=lerp(-1.5,-.55,e)*(1-r)+R.shF*r;o.shB=lerp(-1.3,-.45,e)*(1-r)+R.shB*r;o.noCoil=k<.9;o.propA=o.shF;
+  o.fF=[24+22*q,0];o.fB=[-20-22*q,0];o.hy=R.hy+12*q;o.head=.18*q},
+ tick(ch,p,k){if(p<.05&&k>=.05){const[x,y]=mpt(ch.mats.handF,0,0);FXL.flash(x,y,50,'200,240,150');FXL.spark(x,y,8,'#a8d860',260);FXL.dust(ch.x-ch.face*30*CS,8,40);setShake(.15)}}};
 // 스킬2 등껍질 박치기 준비: 웅크려 등껍질에 힘을 모음
 DAN.acts.skill2={dur:.55,base:'idle',h:DAN,
  pose(o,k){const e=eback(seg(k,0,.35)),r=eio(seg(k,.7,1)),q=e*(1-r);o.lean=-.15*q;o.hy=R.hy+18*q;o.shF=-.9*q+R.shF;o.shB=-.9*q;o.shellTilt=.2*q;o.head=.1*q},

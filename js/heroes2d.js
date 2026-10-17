@@ -5,6 +5,7 @@ import { groundDecal, glowSprite, burst, T, TEAM_RGB } from './sprites2d.js';
 import { HEROES, GAME_KEY, loadHeroes, newChar, setMode, update, renderChar, drawChar, getPose,
   setTarget, setWorld, setShake, tickFX, drawFX, FX, SIMQ, tickSim, TAU } from '../characters/index.js';
 
+import { mpt } from '../characters/common/index.js';
 export const heroesReady = loadHeroes();
 
 const CW = 384, CH = 384;          // 영웅 하나당 텍스처 해상도
@@ -84,6 +85,9 @@ export function updatePuppet(m, e, dt) {
     setTarget(P.g, CW, CH); P.g.save(); P.g.globalAlpha = 0.62 * P.cT; P.g.shadowColor = '#b070ff'; P.g.shadowBlur = 16; P.g.drawImage(P.cv2, 0, 0); P.g.restore();
   } else if (P.ch2) { P.ch2 = null; }
   renderChar(ch); drawFX('front');
+  // 토토: 지팡이 수정 끝 위치를 게임 좌표로 알려줌 (씨앗/폭탄이 실제 지팡이 끝에서 나가도록)
+  if (ch.mats && ch.mats.staff && P.gameKey === 'rabbit') { const [tx, ty] = mpt(ch.mats.staff, 0, -88), K = PLANE / 0.028 / 720 * (m.userData.heroScale || 1), L = window.__LR;
+    e.tipG = [tx * K, ty * K]; e.tipT = L && L.G ? L.G.t : 0; }
   // 피격 플래시
   if (e.flash > 0) { g.save(); g.globalCompositeOperation = 'source-atop'; g.fillStyle = `rgba(255,255,255,${Math.min(.8, e.flash * .8)})`; g.fillRect(0, 0, CW, CH); g.restore(); }
   if (e.stun > 0) { g.save(); g.translate(CW / 2, (PGY - 400) * U); for (let i = 0; i < 3; i++) { const a = performance.now() / 200 + i * 2.1; g.fillStyle = '#ffe066'; g.beginPath(); g.arc(Math.cos(a) * 40 * U, Math.sin(a) * 10 * U, 9 * U, 0, TAU); g.fill(); } g.restore(); }

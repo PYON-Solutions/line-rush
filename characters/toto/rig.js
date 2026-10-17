@@ -22,18 +22,18 @@ const R=TOTO.rest;
 function seedFX(x,y,face){addFX({x,y,vx:face*900,life:.6,up:(f,dt)=>{f.x+=f.vx*dt;if(Math.random()<.5)FXL.spark(f.x,f.y,1,'#d8ff7a',60,4,0)},draw:(f,U)=>{const r=26*U,g=ctx.createRadialGradient(0,0,2,0,0,r);g.addColorStop(0,'rgba(255,255,210,1)');g.addColorStop(.5,'rgba(190,255,90,.8)');g.addColorStop(1,'rgba(120,220,60,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,r,0,TAU);ctx.fill()}})}
 // 기본공격: 지팡이를 앞으로 휘둘러 빛나는 씨앗 발사 (놓는 프레임 k=.4)
 TOTO.acts.basic={dur:.5,base:'idle',h:TOTO,
- pose(o,k){let a,pa,ln;if(k<.3){const e=eio(k/.3);a=lerp(R.shF,-.1,e);pa=lerp(R.propA,-.35,e);ln=lerp(0,-.08,e)}else if(k<.4){const e=eout(seg(k,.3,.4));a=lerp(-.1,-1.1,e);pa=lerp(-.35,.75,e);ln=lerp(-.08,.12,e)}else{const e=eio(seg(k,.5,1));a=lerp(-1.1,R.shF,e);pa=lerp(.75,R.propA,e);ln=lerp(.12,0,e)}
-  o.shF=a;o.propA=pa;o.lean=ln;o.glow=k>.15&&k<.6?Math.sin(seg(k,.15,.6)*Math.PI):0;o.fF=[18+ln*50,0]},
- tick(ch,p,k){if(p<.4&&k>=.4){const[x,y]=mpt(ch.mats.staff,...TIP);if(!GAME)seedFX(x,y,ch.face);FXL.flash(x,y,50,'230,255,170')}}};
+ pose(o,k){let a,pa,ln;if(k<.3){const e=eio(k/.3);a=lerp(R.shF,1.05,e);pa=lerp(R.propA,-1.0,e);ln=lerp(0,-.12,e)}else if(k<.4){const e=eout(seg(k,.3,.4));a=lerp(1.05,-1.3,e);pa=lerp(-1.0,.95,e);ln=lerp(-.12,.15,e)}else{const e=eio(seg(k,.5,1));a=lerp(-1.3,R.shF,e);pa=lerp(.95,R.propA,e);ln=lerp(.15,0,e)}
+  o.shF=a;o.propA=pa;o.lean=ln;o.glow=k<.4?Math.min(1,k/.35):Math.max(0,1-(k-.4)*4);o.fF=[18+ln*60,0];o.fB=[-16-ln*20,0];o.head=-ln*.2},
+ tick(ch,p,k){if(p<.4&&k>=.4){const[x,y]=mpt(ch.mats.staff,...TIP);if(!GAME)seedFX(x,y,ch.face);FXL.flash(x,y,70,'230,255,170');FXL.star4(x,y,44,'rgba(240,255,200,1)');FXL.spark(x,y,6,'#d8ff7a',260)}}};
 // 스킬1 당근 정령 소환: 지팡이를 높이 들고 빙글 (놓는 프레임 k=.35)
 TOTO.acts.skill1={dur:.75,base:'idle',h:TOTO,
  pose(o,k){const e=eback(seg(k,0,.3)),r=eio(seg(k,.75,1)),q=e*(1-r);o.shF=lerp(R.shF,-2.6,q);o.propA=lerp(R.propA,-.2,q)+Math.sin(k*18)*.15*q;o.lean=-.1*q;o.head=-.15*q;o.glow=q},
  tick(ch,p,k){if(p<.35&&k>=.35){const[x,y]=mpt(ch.mats.staff,...TIP);FXL.flash(x,y,90,'255,220,140');FXL.star4(x,y,60,'rgba(255,240,180,1)');FXL.spark(x,y,16,'#ffb347',360,5,100);FXL.ring(ch.x,0,.7*CS/.62,'255,200,110')}}};
 // 스킬2 씨앗 폭탄: 아래에서 위로 퍼 올려 던짐 (놓는 프레임 k=.42)
-TOTO.acts.skill2={dur:.6,base:'idle',h:TOTO,
- pose(o,k){let a,pa,ln;if(k<.3){const e=eio(k/.3);a=lerp(R.shF,.5,e);pa=lerp(R.propA,.9,e);ln=lerp(0,-.06,e)}else if(k<.42){const e=eout(seg(k,.3,.42));a=lerp(.5,-1.9,e);pa=lerp(.9,-.5,e);ln=lerp(-.06,.1,e)}else{const e=eio(seg(k,.55,1));a=lerp(-1.9,R.shF,e);pa=lerp(-.5,R.propA,e);ln=lerp(.1,0,e)}
-  o.shF=a;o.propA=pa;o.lean=ln;o.glow=k<.5?k*2:0;o.shB=-.6*Math.sin(Math.min(1,k*2)*Math.PI)},
- tick(ch,p,k){if(p<.42&&k>=.42){const[x,y]=mpt(ch.mats.staff,...TIP);FXL.flash(x,y,60,'200,255,140');FXL.spark(x,y,10,'#a8e05a',300)}}};
+TOTO.acts.skill2={dur:.62,base:'idle',h:TOTO,
+ pose(o,k){let a,pa,ln;if(k<.3){const e=eio(k/.3);a=lerp(R.shF,2.6,e);pa=lerp(R.propA,-.7,e);ln=lerp(0,-.2,e)}else if(k<.42){const e=eout(seg(k,.3,.42));a=lerp(2.6,-1.5,e);pa=lerp(-.7,.3,e);ln=lerp(-.2,.18,e)}else{const e=eio(seg(k,.55,1));a=lerp(-1.5,R.shF,e);pa=lerp(.3,R.propA,e);ln=lerp(.18,0,e)}
+  o.shF=a;o.propA=pa;o.lean=ln;o.glow=k<.42?Math.min(1,k*2.6):Math.max(0,1-(k-.42)*4);o.shB=k<.3?lerp(R.shB,-1.1,eio(k/.3)):lerp(-1.1,R.shB,eio(seg(k,.3,.7)));o.fF=[18+ln*70,0];o.fB=[-16-ln*30,0];o.hy=R.hy+Math.abs(ln)*10},
+ tick(ch,p,k){if(p<.42&&k>=.42){const[x,y]=mpt(ch.mats.staff,...TIP);FXL.flash(x,y,80,'200,255,140');FXL.spark(x,y,12,'#a8e05a',340);FXL.swoosh(ch.x,(ch.y-150)*CS,ch.face,120*CS,-2.8,.1,'rgba(190,255,120,.8)')}}};
 // 궁극기 거대 당근 나무: 지팡이를 땅에 꽂음 (놓는 프레임 k=.45)
 TOTO.acts.ult={dur:1.1,base:'idle',h:TOTO,
  pose(o,k){let a,pa,hy=R.hy;if(k<.3){const e=eback(k/.3);a=lerp(R.shF,-2.7,e);pa=lerp(R.propA,-.1,e)}else if(k<.45){const e=ein(seg(k,.3,.45));a=lerp(-2.7,-.9,e);pa=lerp(-.1,0,e);hy=R.hy+10*e}else{const e=eio(seg(k,.7,1));a=lerp(-.9,R.shF,e);pa=lerp(0,R.propA,e);hy=lerp(R.hy+10,R.hy,e)}

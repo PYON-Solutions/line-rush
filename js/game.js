@@ -158,7 +158,7 @@ function kill(e, src) {
     const foe = G.teams[1-e.team].hero; if (isAlive(foe) && Math.abs(foe.x-e.x) < 750) giveXp(foe, e.mt.xp);
   } else if (e.kind==='hero') {
     G.parts.push({pop:true, img:HEROES[e.key].img+(e.team?'_r':''), x:e.x, y:e.y, h:78, face:e.face, t:0, life:0.5}); G.hitstop = 0.12; sfx('boom',0.8);
-    e.respawn = RESPAWN.base + e.lv*RESPAWN.perLv + (G.t/60)*(RESPAWN.perMin||0); e.deaths++; e.pend = null; e.recall=null; e.slow=e.stun=0; e.shield=0; e.dash=null; e.slam=null; e.kbv=0; e.root=0; e.atkLock=0; e.clone=null; e.spirits=null; e.bash=0; e.mark=null;
+    e.respawn = RESPAWN.base + e.lv*RESPAWN.perLv + (G.t/60)*(RESPAWN.perMin||0); e.deaths++; e.pend = null; e.recall=null; e.slow=e.stun=0; e.shield=0; e.dash=null; e.slam=null; e.kbv=0; e.yank=null; e.root=0; e.atkLock=0; e.clone=null; e.spirits=null; e.bash=0; e.mark=null;
     const k = G.teams[1-e.team].hero; k.kills++;
     gold(1-e.team, ECON.heroKill, k.x, k.y-90); giveXp(k, 120 + e.lv*25);
     addMsg(e===G.hero ? `처치당했습니다! ${Math.ceil(e.respawn)}초 후 부활` : '적 영웅 처치! +'+ECON.heroKill+'G', e===G.hero?'#ff8a8a':'#ffe066');
@@ -184,7 +184,7 @@ function burst(x,y,c,n){ for(let i=0;i<n;i++){ const a=rand(0,6.28), s=rand(60,3
 
 // ================= 업데이트 =================
 function update(dt) {
-  G.t += dt; G.tick = (G.tick||0)+1;
+  G.t += dt; G.tick = (G.tick||0)+1; updYank(dt);
   const flip = G.tick % 2 === 1; // 진영 편향 방지: 웨이브 생성·엔티티·투사체 처리 순서를 매 프레임 번갈아
   for (const t of (flip ? [1,0] : [0,1])) { const tm=G.teams[t]; tm.gold += ECON.passive*dt; tm.passive = (tm.passive||0) + ECON.passive*dt; tm.buffT=Math.max(0,tm.buffT-dt); tm.wardCd=Math.max(0,tm.wardCd-dt);
     G.waveT[t] -= dt; if (G.waveT[t] <= 0) { G.waveT[t] = BASE.wave[tm.stage]; spawnWave(t); } }
@@ -296,7 +296,8 @@ function updHero(h, dt) {
       later(h, relT(h, h.animAct), () => { if (h.respawn>0 || h.dead) return;
         let t = tgt; if (t.dead || t.hp<=0 || t.respawn>0) { t = pickTarget(h, h.face); if (!t) return; }
         if (onScreen(h)) sfx(h.d.proj?'shoot':'hit', 0.4);
-        if (h.d.proj) G.proj.push({kind:h.d.proj, x:h.x+h.face*20, y:cy(h)-8, team:h.team, owner:h, target:t, dmg:dmgA, crit, spd:h.d.proj==='arrow'?720:520, homing:true, aoe:h.d.proj==='orb'?45:0});
+        let sx = h.x+h.face*20, sy = cy(h)-8; if (h.key==='rabbit') { [sx, sy] = staffTip(h, 'seed'); fx({kind:'muzzle', x:sx, y:sy, life:0.16, c:'200,255,120'}); }
+        if (h.d.proj) G.proj.push({kind:h.d.proj, x:sx, y:sy, team:h.team, owner:h, target:t, dmg:dmgA, crit, spd:h.d.proj==='arrow'?720:520, homing:true, aoe:h.d.proj==='orb'?45:0});
         else if (bashing) bashHit(h, t, dmgA);
         else { damage(h, t, dmgA, {pc:'#ffe2a0', crit}); if (h.d.lifesteal) h.hp = Math.min(h.maxHp, h.hp + dmgA*h.d.lifesteal); if (t.kind!=='minion') shake=Math.max(shake,2); } });
     }
@@ -361,7 +362,7 @@ function useSkill(h, i) {
       const d3 = relT(h,'ult'); fx({kind:'mark', x:tx, life:0.8, r:165*rm, c:'#ffe066'}); later(h, d3, () => G.proj.push({kind:'star', x0:tx-f*260, tx, ty:GROUND, team:h.team, owner:h, dmg:360*m, life:0.8-d3, t0:0.8-d3, r:165*rm, stun:ccDur(h,0.4)})); }
   } else if (k==='turtle') {
     const T = TURTLE;
-    if (i===0) later(h, relT(h,'skill1'), () => { if (h.respawn>0) return; const a = aimAng(h, f)*0.6; G.proj.push({kind:'lasso', no3d:true, x:h.x+f*24, y:cy(h)-10, vx:Math.cos(a)*f*T.lasso.spd, vy:Math.sin(a)*T.lasso.spd, team:h.team, owner:h, dmg:T.lasso.dmg*m, life:T.lasso.life*Math.min(1.3, rm), life0:T.lasso.life*Math.min(1.3, rm), pull:true, stun:ccDur(h, T.lasso.stun)}); });
+    if (i===0) later(h, relT(h,'skill1'), () => { if (h.respawn>0) return; const a = aimAng(h, f)*0.6 - 0.16; G.proj.push({kind:'lasso', g:520, no3d:true, x:h.x+f*24, y:cy(h)-10, vx:Math.cos(a)*f*T.lasso.spd, vy:Math.sin(a)*T.lasso.spd, team:h.team, owner:h, dmg:T.lasso.dmg*m, life:T.lasso.life*Math.min(1.3, rm), life0:T.lasso.life*Math.min(1.3, rm), pull:true, stun:ccDur(h, T.lasso.stun)}); });
     if (i===1) { h.bash = G.t + T.bash.window; h.bashDmg = T.bash.dmg*m; h.bashStun = ccDur(h, T.bash.stun); burst(h.x, cy(h), '#ffd27a', 16); fx({kind:'bubble', ent:h, life:0.4}); }
     if (i===2) { const r = T.quake.r*rm, d = T.quake.dmg*m, sl = T.quake.slow + ccDur(h, T.quake.slowCc); h.quakeT = G.t;
       later(h, relT(h,'ult'), () => { if (h.respawn>0) return; quake(h, r, d, sl, 1); later(h, T.quake.after, () => { if (h.respawn<=0) quake(h, r*1.25, d*T.quake.afterMul, sl*0.6, 0.6); }); }); }
@@ -378,8 +379,8 @@ function useSkill(h, i) {
     if (i===0) later(h, relT(h,'skill1'), () => { if (h.respawn>0) return; const n = 1 + (h.lv>=7?1:0) + (h.lv>=14?1:0); h.spirits = {end:G.t + RB.spirit.dur, n, dmg:RB.spirit.dmg*m, cd:[0.3,0.6,0.9].slice(0,n), t0:G.t};
       for (let j=0;j<n;j++) burst(h.x - f*30, cy(h)-50, '#ffb347', 10); });
     if (i===1) later(h, relT(h,'skill2'), () => { if (h.respawn>0) return; let tx = h.x + f*260; const eh = G.teams[1-h.team].hero; if (isAlive(eh) && (eh.x-h.x)*f > 40 && Math.abs(eh.x-h.x) < 420) tx = eh.x;
-      const y0 = cy(h)-20, vy = -340, g = 1100, tf = (-vy + Math.sqrt(vy*vy + 2*g*Math.max(10, GROUND-y0)))/g, vx = clamp((tx - h.x)/tf*f, 80, 560)*f;
-      G.proj.push({kind:'bomb', no3d:true, x:h.x+f*20, y:y0, vx, vy, g, team:h.team, owner:h, dmg:RB.bomb.dmg*m, r:RB.bomb.r*rm, slow:RB.bomb.slow + ccDur(h, RB.bomb.slowCc), spin:0}); });
+      const [bx, y0] = staffTip(h, 'bomb'), vy = -430, g = 1150, tf = (-vy + Math.sqrt(vy*vy + 2*g*Math.max(10, GROUND-y0)))/g, vx = clamp((tx - bx)/tf*f, 80, 560)*f; fx({kind:'muzzle', x:bx, y:y0, life:0.18, c:'190,255,110'});
+      G.proj.push({kind:'bomb', no3d:true, x:bx, y:y0, tr:[], vx, vy, g, team:h.team, owner:h, dmg:RB.bomb.dmg*m, r:RB.bomb.r*rm, slow:RB.bomb.slow + ccDur(h, RB.bomb.slowCc), spin:0}); });
     if (i===2) { let tx = h.x + f*240; const eh = G.teams[1-h.team].hero; const st = G.ents.filter(e=>(e.kind==='tower'||e.kind==='base') && !e.dead && e.team!==h.team && (e.x-h.x)*f > -40 && Math.abs(e.x-h.x) < 460).sort((a,b)=>Math.abs(a.x-h.x)-Math.abs(b.x-h.x))[0];
       if (isAlive(eh) && Math.abs(eh.x-h.x) < 460) tx = eh.x; else if (st) tx = st.x - f*20;
       fx({kind:'mark', x:tx, life:0.5, r:RB.tree.r*rm, c:'#ffb347'});
@@ -392,6 +393,9 @@ function useSkill(h, i) {
   return true;
 }
 // ----- 새 영웅 보조 -----
+// 토토 지팡이 끝(수정) 위치: 브라우저에선 퍼펫이 매 프레임 알려줌(h.tipG), 시뮬/폴백은 놓는 프레임 근사값
+function staffTip(h, kind) { if (h.tipG && h.tipT > G.t - 0.25) return [h.x + h.tipG[0], h.y + h.tipG[1]]; const s = 1 + 0.15*Math.min(1,(h.lv-1)/19);
+  return kind==='bomb' ? [h.x + h.face*30*s, h.y - 118*s] : [h.x + h.face*52*s, h.y - 70*s]; }
 function bashHit(h, t, dmgA) { // 단단 등껍질 박치기: 강화 타격 + 띄우기(짧은 기절)
   damage(h, t, dmgA + (h.bashDmg||0), {stun:h.bashStun||0.5, pc:'#ffd27a', color:'#ffe08a'}); shake = Math.max(shake, 7); if (onScreen(h)) sfx('boom', 0.5);
   if (isAlive(t) && (t.kind==='hero' || (t.kind==='minion' && t.mt!==MINIONS.boss))) { t.vy = -TURTLE.bash.lift; if (t.kind==='hero') t.ground = false; t.kbv = 0; }
@@ -405,9 +409,16 @@ function quake(h, r, d, sl, big) { // 단단 대지 진동
 function pullTo(h, e, stun) { // 단단 덩굴 올가미: 맞은 적을 단단 앞으로 끌어옴
   if (!isAlive(e) || (e.kind==='minion' && e.mt===MINIONS.boss)) return;
   const side = Math.sign(e.x-h.x)||h.face, delta = (h.x + side*58) - e.x;
-  if (e.kind==='hero') { e.kbv = delta*3.9; e.vy = Math.min(e.vy, -180); e.ground = false; e.stun = Math.max(e.stun, stun); e.recall = null; }
-  else { e.kbv = delta*3.5; e.stun = Math.max(e.stun, stun); }
-  fx({kind:'vine', x:h.x, y:cy(h), ent:e, owner:h, life:0.35}); }
+  const dur = 0.2 + Math.min(0.16, Math.abs(delta)/2200);
+  e.kbv = 0; e.stun = Math.max(e.stun, stun + dur); e.yank = {x0:e.x, x1:clamp(e.x+delta, 40, WORLD_W-40), t:-0.08, dur, owner:h};  // 감기는 동안(0.08s) 멈췄다가 빠르게 끌려온 뒤 감속(ease-out)
+  if (e.kind==='hero') { e.recall = null; e.vy = Math.min(e.vy, -150); e.ground = false; }
+  G.hitstop = Math.max(G.hitstop||0, 0.08); shake = Math.max(shake, 5);
+  fx({kind:'wrap', ent:e, life:0.5}); fx({kind:'vine', x:h.x, y:cy(h), ent:e, owner:h, life:0.08+dur+0.12, taut:true});
+  h.animAct = 'pull'; h.animSeq = (h.animSeq||0)+1; }
+function updYank(dt) { for (const e of G.ents) { const y = e.yank; if (!y) continue; if (!isAlive(e)) { e.yank = null; continue; }
+  y.t += dt; if (y.t < 0) { e.x = y.x0; continue; } const u = Math.min(1, y.t/y.dur); e.x = y.x0 + (y.x1-y.x0)*(1-Math.pow(1-u, 3)); e.kbv = 0;
+  if (u >= 1) { e.yank = null; shake = Math.max(shake, 4); fx({kind:'dust', x:e.x, y:e.y, r:55, life:0.5}); G.parts.push({ring:true, x:e.x, y:e.y, t:0, life:0.25, r:45, c:'#d9c29a'});
+    for (let i=0;i<10;i++) G.parts.push({x:e.x+rand(-25,25), y:e.y, vx:rand(-140,140), vy:rand(-220,-60), t:0, life:0.5, c:'#c9b088', r:rand(3,6), g:true}); if (onScreen(e)) sfx('hit', 0.6); } } }
 function updClone(h, dt) { // 살랑 그림자 분신: 영웅 뒤에서 함께 공격
   const c = h.clone; if (G.t > c.end) { burst(h.x - h.face*45, cy(h), '#b07aff', 14); h.clone = null; return; }
   c.atkT -= dt; if (c.atkT > 0 || h.stun>0) return;
@@ -415,14 +426,29 @@ function updClone(h, dt) { // 살랑 그림자 분신: 영웅 뒤에서 함께 �
   c.atkT = h.d.as; c.seq++;
   later(h, 0.12, () => { if (!h.clone || !isAlive(t)) return; const low = t.hp < t.maxHp*FOX.lowHp;
     damage(h, t, heroAtk(h)*c.mul*(low ? FOX.lowMul : 1), {pc:'#c9a0ff', color:'#e0c8ff'}); fx({kind:'cslash', x:t.x, y:cy(t), f:h.face, life:0.25}); }); }
-function spiritPos(h, j, n) { const a = G.t*2.2 + j*6.283/n; return [h.x - h.face*26 + Math.cos(a)*44, cy(h) - 58 + Math.sin(a)*14]; }
-function updSpirits(h, dt) { // 토토 당근 정령: 주변을 돌며 씨앗 발사
-  const S = h.spirits; if (G.t > S.end) { const [x,y] = spiritPos(h,0,S.n); burst(x, y, '#ffb347', 12); h.spirits = null; return; }
-  for (let j=0;j<S.n;j++) { S.cd[j] -= dt; if (S.cd[j] > 0) continue;
+// 토토 당근 정령: 토토 뒤에 줄지어 졸졸 따라다님(엇갈린 위치·통통 뜀·살짝 늦게 따라옴). 공격할 땐 앞으로 쏙 나가 씨앗을 쏘고(반동) 제자리로 복귀
+function spiritSlot(h, j) { const bob = Math.abs(Math.sin(G.t*5 + j*1.7))*10; return [h.x - h.face*(46 + j*34), cy(h) - 34 - (j%2)*16 - bob]; }
+function spiritPos(h, j, n) { const S = h.spirits, q = S && S.p && S.p[j]; if (!q) return spiritSlot(h, j); const rc = q.rec||0; return [q.x - q.dir*rc*7, q.y]; }
+function updSpirits(h, dt) {
+  const S = h.spirits; if (G.t > S.end) { for (let j=0;j<S.n;j++) { const [x,y] = spiritPos(h,j,S.n); burst(x, y, '#ffb347', 10); } h.spirits = null; return; }
+  S.p = S.p || [];
+  for (let j=0;j<S.n;j++) { let q = S.p[j]; if (!q) { const [sx,sy] = spiritSlot(h, j); q = S.p[j] = {x:h.x, y:cy(h)-40, dir:h.face, rec:0, dart:null}; q.x += (sx-h.x)*0.3; }
+    q.rec = Math.max(0, q.rec - dt*7); S.cd[j] -= dt;
+    let gx, gy, ease = 7;
+    if (q.dart) { const d = q.dart; d.t += dt; const t = d.tgt;
+      if (d.t < 0.16) { gx = d.x; gy = d.y; ease = 16; }                 // 앞으로 쏙
+      else if (!d.shot) { d.shot = true; q.rec = 1; q.dir = Math.sign(t.x - q.x) || h.face; if (isAlive(t)) { fx({kind:'muzzle', x:q.x + q.dir*10, y:q.y, life:0.12, c:'255,200,110', s:0.6}); G.proj.push({kind:'seed', small:true, x:q.x + q.dir*8, y:q.y, team:h.team, owner:h, target:t, dmg:S.dmg, spd:620, homing:true}); } gx = d.x; gy = d.y; }
+      else if (d.t < 0.3) { gx = d.x; gy = d.y; }                       // 반동 후 잠깐 머묾
+      else { q.dart = null; }
+    }
+    if (!q.dart) { [gx, gy] = spiritSlot(h, j); q.dir = h.face; }
+    const kk = 1 - Math.exp(-ease*dt); q.x += (gx - q.x)*kk; q.y += (gy - q.y)*kk;
+    if (S.cd[j] > 0 || q.dart) continue;
     let best=null, bd=1e9; for (const e of enemiesOf(h.team)) { const d = Math.abs(e.x-h.x); if (d > RABBIT.spirit.range || Math.abs(cy(e)-cy(h)) > 220) continue; const s2 = d + (e.kind==='hero'?0 : e.kind==='minion'?150 : 400); if (s2 < bd) { bd=s2; best=e; } }
     if (!best) { S.cd[j] = 0.2; continue; }
-    S.cd[j] = RABBIT.spirit.cd; const [x,y] = spiritPos(h, j, S.n);
-    G.proj.push({kind:'seed', small:true, x, y, team:h.team, owner:h, target:best, dmg:S.dmg, spd:620, homing:true}); }
+    S.cd[j] = RABBIT.spirit.cd; const dir = Math.sign(best.x - h.x) || h.face, reach = Math.min(90, Math.max(30, Math.abs(best.x-h.x) - 60));
+    q.dart = {t:0, tgt:best, x:h.x + dir*(reach - j*14), y:cy(h) - 44 - j*12, shot:false};
+  }
 }
 function doSlam(h) {
   const s = h.slam; h.slam = null; shake = Math.max(shake, 10); G.hitstop = 0.07; if (onScreen(h)) sfx('boom', 0.7);
@@ -514,9 +540,11 @@ function updProj(dt) {
         fx({kind:'boom', x:p.tx, y:GROUND, r:p.r||165, life:0.7}); if (onScreen({x:p.tx})) fx({kind:'flash', life:0.18});
         for (const e of enemiesOf(p.team, {dragon:true})) if (Math.abs(e.x-p.tx) < (p.r||165)+e.w/2 && cy(e) > GROUND-300) damage(p.owner, e, p.dmg, {stun:p.stun||0.4, color:'#ffe066', pc:'#ffe066'}); }
       continue; }
-    if (p.kind==='bomb') { p.vy += p.g*dt; p.x += p.vx*dt; p.y += p.vy*dt; p.spin += dt*12; if (Math.random()<0.5) G.parts.push({x:p.x, y:p.y, vx:rand(-20,20), vy:rand(-20,20), t:0, life:0.4, c:'#b6f06a', r:rand(2,3.5)});
+    if (p.kind==='bomb') { p.vy += p.g*dt; p.x += p.vx*dt; p.y += p.vy*dt; p.spin += dt*(p.landT!=null ? 0 : 14); if (p.tr && p.landT==null) { p.tr.push([p.x, p.y]); if (p.tr.length > 7) p.tr.shift(); } if (Math.random()<0.5) G.parts.push({x:p.x, y:p.y, vx:rand(-20,20), vy:rand(-20,20), t:0, life:0.4, c:'#b6f06a', r:rand(2,3.5)});
       let hitE = p.y >= GROUND - 2;
       if (!hitE) for (const e of enemiesOf(p.team)) if ((e.kind==='hero'||e.kind==='minion') && Math.abs(e.x-p.x) < e.w/2+10 && Math.abs(cy(e)-p.y) < e.h/2+12) { hitE = true; break; }
+      if (hitE && p.landT==null) { p.landT = 0.07; p.vx = p.vy = p.g = 0; p.y = Math.min(p.y, GROUND-6); burst(p.x, p.y, '#c9b088', 6); }  // 착지: 살짝 찌그러졌다가 폭발
+      if (p.landT!=null) { p.landT -= dt; hitE = p.landT <= 0; }
       if (hitE) { p.dead = true; const y = Math.min(p.y, GROUND); shake = Math.max(shake, 6); if (onScreen(p)) sfx('boom', 0.55);
         fx({kind:'seedboom', x:p.x, y, r:p.r, life:0.6}); burst(p.x, y-10, '#b6f06a', 18); burst(p.x, y-10, '#ffe08a', 10);
         for (const e of enemiesOf(p.team, {dragon:true})) if (Math.abs(e.x-p.x) < p.r+e.w/2 && Math.abs(cy(e)-y) < p.r+40) damage(p.owner, e, p.dmg, {slow:p.slow, pc:'#b6f06a', color:'#d8ff9a'}); }
@@ -544,6 +572,7 @@ function updProj(dt) {
     }
     p.life -= dt; p.x += p.vx*dt; p.y += p.vy*dt; p.ang = Math.atan2(p.vy, p.vx);
     if (p.kind==='ice' && Math.random()<0.6) G.parts.push({x:p.x, y:p.y, vx:rand(-30,30), vy:rand(-30,30), t:0, life:0.35, c:'#bfeaff', r:rand(2,4)});
+    if (p.g && p.pull) p.vy += p.g*dt;
     if (p.pull || p.mark) { let hitE = null;  // 단단 올가미(영웅·미니언만) / 살랑 단검
       for (const e of enemiesOf(p.team, {dragon:!p.pull})) if ((!p.pull || e.kind==='hero' || e.kind==='minion') && Math.abs(e.x-p.x) < e.w/2+10 && Math.abs(cy(e)-p.y) < e.h/2+14) { hitE = e; break; }
       if (hitE) { p.dead = true;
@@ -1176,11 +1205,12 @@ function drawSkillFx(camX0) {
       ctx.rotate(tt*1.5); ctx.beginPath(); for (let i=0;i<=5;i++){ const an=i*2.513; ctx.lineTo(Math.cos(an)*p.r*0.72, Math.sin(an)*p.r*0.72); } ctx.stroke();
       ctx.restore(); ctx.globalAlpha = 1;
       if (!p.fired) for (let i=0;i<3;i++){ const an = tt*4+i*2.1; ctx.fillStyle='#f0e0ff'; ctx.beginPath(); ctx.arc(x+Math.cos(an)*p.r*0.8, p.y+Math.sin(an)*p.r*0.24-k*30, 3, 0, 6.28); ctx.fill(); } }
-    else if (p.kind==='lasso') drawVine(p.owner.x + Math.sign(p.vx)*20, cy(p.owner)-14, p.x, p.y, tt, 1);
+    else if (p.kind==='lasso') { const q = 1 - p.life/p.life0; drawVine(p.owner.x + Math.sign(p.vx)*20, cy(p.owner)-14, p.x, p.y, tt, 1, 1.4 - q*0.6, p.vx); }
     else if (p.kind==='dagger') { const a = Math.atan2(p.vy, p.vx); ctx.save(); ctx.translate(x, p.y);
       ctx.globalAlpha = 0.5; ctx.strokeStyle = '#b07aff'; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-Math.cos(a)*50, -Math.sin(a)*50); ctx.stroke(); ctx.globalAlpha = 1;
       ctx.rotate(a - Math.PI/2 + tt*0); glow(0, 0, 9, 'rgba(180,120,255,0.8)'); const im = IMG.sal_dagger; if (im && im.naturalWidth) ctx.drawImage(im, -im.width*0.11, -im.height*0.12, im.width*0.22, im.height*0.22); ctx.restore(); }
-    else if (p.kind==='bomb') { ctx.save(); ctx.translate(x, p.y); glow(0, 0, 10, 'rgba(190,255,100,0.7)'); ctx.rotate(p.spin);
+    else if (p.kind==='bomb') { if (p.tr) p.tr.forEach(([qx,qy],j) => { ctx.globalAlpha = 0.08 + j*0.05; ctx.fillStyle = '#b6f06a'; ctx.beginPath(); ctx.arc(qx-camX, qy, 3+j, 0, 6.28); ctx.fill(); }); ctx.globalAlpha = 1;
+      ctx.save(); ctx.translate(x, p.y); glow(0, 0, 10, 'rgba(190,255,100,0.7)'); if (p.landT!=null) { ctx.translate(0, 4); ctx.scale(1.4, 0.62); } ctx.rotate(p.spin);
       ctx.fillStyle = '#8a5a2a'; ctx.strokeStyle = '#3a2410'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, 0, 10, 13, 0, 0, 6.28); ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#b8864a'; ctx.beginPath(); ctx.ellipse(-3, -4, 3, 5, 0.3, 0, 6.28); ctx.fill();
       ctx.fillStyle = '#7ccf3a'; ctx.beginPath(); ctx.ellipse(4, -15, 4, 8, 0.6, 0, 6.28); ctx.fill(); ctx.beginPath(); ctx.ellipse(-4, -15, 4, 8, -0.6, 0, 6.28); ctx.fill(); ctx.restore(); }
@@ -1189,9 +1219,9 @@ function drawSkillFx(camX0) {
   // 토토 당근 정령 (따라다니며 씨앗 발사) / 살랑 표식 / 단단 박치기 준비
   for (const h of [G.hero, G.ai]) { if (!h || !isAlive(h)) continue;
     if (h.spirits) { const S = h.spirits, a = Math.min(1, (tt-S.t0)*4, (S.end-tt)*3), im = IMG.toto_spirit;
-      for (let j=0;j<S.n;j++) { const [sx, sy] = spiritPos(h, j, S.n); ctx.save(); ctx.globalAlpha = Math.max(0,a); ctx.translate(sx, sy + Math.sin(tt*6+j)*3);
-        glow(0, 0, 13, 'rgba(255,190,90,0.55)'); for (let q=0;q<3;q++){ ctx.fillStyle='rgba(255,240,180,0.7)'; ctx.beginPath(); ctx.arc(-h.face*(10+q*7), 8+Math.sin(tt*9+q)*3, 2.4-q*0.6, 0, 6.28); ctx.fill(); }
-        ctx.rotate(h.face*0.5 + Math.sin(tt*5+j)*0.15); if (im && im.naturalWidth) { const hh = 34, ww = hh*im.width/im.height; ctx.scale(h.face, 1); ctx.drawImage(im, -ww/2, -hh/2, ww, hh); } ctx.restore(); } }
+      for (let j=0;j<S.n;j++) { const [sx, sy] = spiritPos(h, j, S.n), q = S.p && S.p[j], dr = q ? q.dir : h.face, hop = Math.abs(Math.sin(tt*5 + j*1.7)); ctx.save(); ctx.globalAlpha = Math.max(0,a); ctx.translate(sx, sy);
+        glow(0, 0, 13, 'rgba(255,190,90,0.55)'); for (let k3=0;k3<3;k3++){ ctx.fillStyle='rgba(255,240,180,0.7)'; ctx.beginPath(); ctx.arc(-dr*(10+k3*7), 8+Math.sin(tt*9+k3)*3, 2.4-k3*0.6, 0, 6.28); ctx.fill(); }
+        ctx.rotate(dr*0.12 + Math.sin(tt*5+j)*0.1); ctx.scale(1 + (1-hop)*0.08, 1 - (1-hop)*0.08); if (im && im.naturalWidth) { const hh = 34, ww = hh*im.width/im.height; ctx.scale(dr, 1); ctx.drawImage(im, -ww/2, -hh/2, ww, hh); } ctx.restore(); } }
     if (h.bash > tt) { const k2 = 0.6+0.4*Math.sin(tt*10); ctx.save(); ctx.globalAlpha = k2; ctx.strokeStyle = '#ffd27a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(h.x, h.y-4, 34, 9, 0, 0, 6.28); ctx.stroke();
       glow(h.x - h.face*18, cy(h)-6, 16, 'rgba(255,210,110,0.45)'); ctx.restore(); }
   }
@@ -1268,7 +1298,11 @@ function drawSkillFx(camX0) {
       ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(x, f.y-20, R2, 0, 6.28); ctx.fill(); ctx.globalAlpha = a; ctx.strokeStyle = '#d8ff9a'; ctx.lineWidth = 5*a; ctx.beginPath(); ctx.ellipse(x, f.y, R2*1.2, R2*0.28, 0, 0, 6.28); ctx.stroke();
       ctx.fillStyle = '#7ccf3a'; for (let i=0;i<8;i++){ const an = i*0.785+0.3, d = R2*0.9; ctx.beginPath(); ctx.ellipse(x+Math.cos(an)*d, f.y-20+Math.sin(an)*d*0.6, 6, 3, an, 0, 6.28); ctx.fill(); } }
     else if (f.kind==='root') { ctx.globalAlpha = a; ctx.strokeStyle = '#6aa83a'; ctx.lineWidth = 4; ctx.lineCap = 'round'; const up = Math.sin(Math.min(1,k*3)*Math.PI*0.5)*34*a; for (const dx of [-12, 0, 12]) { ctx.beginPath(); ctx.moveTo(x+dx, f.y); ctx.quadraticCurveTo(x+dx+8, f.y-up*0.5, x+dx-2, f.y-up); ctx.stroke(); } }
-    else if (f.kind==='vine') { if (f.owner && f.ent && isAlive(f.ent)) { ctx.globalAlpha = a; drawVine(f.owner.x + f.owner.face*20, cy(f.owner)-14, f.ent.x, cy(f.ent), tt, a); } }
+    else if (f.kind==='vine') { if (f.owner && f.ent && isAlive(f.ent)) { ctx.globalAlpha = a; drawVine(f.owner.x + f.owner.face*20, cy(f.owner)-14, f.ent.x, cy(f.ent), tt, a, f.taut ? 0.12 : 1); } }
+    else if (f.kind==='muzzle') { const k = f.t/f.life, r = 22*(f.s||1)*(0.6+k*0.8); ctx.save(); ctx.globalCompositeOperation = 'lighter'; const g2 = ctx.createRadialGradient(x, f.y, 1, x, f.y, r); g2.addColorStop(0, `rgba(255,255,230,${1-k})`); g2.addColorStop(0.4, `rgba(${f.c},${0.8*(1-k)})`); g2.addColorStop(1, `rgba(${f.c},0)`); ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(x, f.y, r, 0, 6.28); ctx.fill(); ctx.restore(); }
+    else if (f.kind==='wrap') { const e = f.ent; if (e && isAlive(e)) { const x = e.x, y = cy(e), k = f.t/f.life; ctx.save(); ctx.globalAlpha = Math.min(1, (1-k)*2.5); ctx.lineCap='round';
+      for (let j=0;j<3;j++) { const yy = y - 16 + j*16, rw = (e.w/2+8)*(0.7+0.3*Math.min(1,f.t*12)); for (const [w,c] of [[6,'#2f4a14'],[3.5,'#7aa83a'],[1.2,'#c8f08a']]) { ctx.strokeStyle=c; ctx.lineWidth=w; ctx.beginPath(); ctx.ellipse(x, yy, rw, 7, -0.15, tt*9+j, tt*9+j+Math.PI*1.6*Math.min(1,f.t*10)); ctx.stroke(); } }
+      ctx.fillStyle='#8fd14a'; for (let j=0;j<5;j++){ const an=tt*6+j*1.26; ctx.beginPath(); ctx.ellipse(x+Math.cos(an)*(e.w/2+8), y-20+j*10, 5, 2.5, an, 0, 6.28); ctx.fill(); } ctx.restore(); } }
     else if (f.kind==='bubble') { ctx.globalAlpha = a; ctx.strokeStyle = '#fff3b0'; ctx.lineWidth = 6*a; ctx.beginPath(); ctx.arc(x, cy(f.ent), 30+50*k, 0, 6.28); ctx.stroke(); }
     ctx.globalAlpha = 1;
   }
@@ -1279,8 +1313,9 @@ function drawSkillFx(camX0) {
 }
 
 // 단단 덩굴 올가미: 출렁이는 덩굴 + 잎 + 나무 고리
-function drawVine(x0, y0, x1, y1, tt, a) { const dx = x1-x0, dy = y1-y0, L = Math.hypot(dx, dy)||1, nx = -dy/L, ny = dx/L, n = Math.max(6, Math.floor(L/14));
-  const pt = i => { const u = i/n, w = Math.sin(u*Math.PI*3 + tt*14)*7*Math.sin(u*Math.PI); return [x0+dx*u+nx*w, y0+dy*u+ny*w]; };
+function drawVine(x0, y0, x1, y1, tt, a, slack = 1) { const dx = x1-x0, dy = y1-y0, L = Math.hypot(dx, dy)||1, nx = -dy/L, ny = dx/L, n = Math.max(6, Math.floor(L/14));
+  // slack: 1=느슨하게 출렁(던질 때), ~0=팽팽(당길 때). 아래로 처지는 곡선 + 이동하는 물결
+  const pt = i => { const u = i/n, env = Math.sin(u*Math.PI), w = Math.sin(u*Math.PI*3 - tt*16)*7*slack*env, sag = Math.min(40, L*0.12)*slack*env; return [x0+dx*u+nx*w, y0+dy*u+ny*w+sag]; };
   ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   for (const [w, c] of [[7, '#2f4a14'], [4.5, '#7aa83a'], [1.5, '#b8e070']]) { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); for (let i=0;i<=n;i++){ const [px,py] = pt(i); i ? ctx.lineTo(px,py) : ctx.moveTo(px,py); } ctx.stroke(); }
   ctx.fillStyle = '#8fd14a'; for (let i=2;i<n;i+=3){ const [px,py] = pt(i); ctx.beginPath(); ctx.ellipse(px+nx*6, py+ny*6, 5, 2.5, Math.atan2(dy,dx)+0.8, 0, 6.28); ctx.fill(); }
