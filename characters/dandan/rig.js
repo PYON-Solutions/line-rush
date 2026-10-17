@@ -4,7 +4,7 @@ import {cap,legDrawer,armPiece} from '../common/cutout.js';
 import {applyKeys,smear} from '../common/keypose.js';
 const GRIP=[5,82];
 const DAN={name:'단단',key:'dandan',Tc:.44,stride:64,lift:24,legLen:100,armSwing:.7,shadow:92,torsoDY:6,neck:[-4,-148],propLag:.5,
- P:{torso:{f:'dandan/torso',p:[100,226],s:.75,flip:true},head:{f:'dandan/head',p:[200,198],s:.68},shell:{f:'dandan/shell_side',p:[262,232],s:.42},
+ P:{torso:{f:'dandan/torso',p:[100,226],s:.75,flip:true},head:{f:'dandan/head',p:[200,198],s:.68},shell:{f:'dandan/shell_side',p:[262,232],s:.5},
   arm:{f:'dandan/arm',p:[50,18],s:.62},armW:{f:'dandan/arm_w',p:[56,16],s:.62},foot:{f:'dandan/foot',p:[58,24],s:.55},foot2:{f:'dandan/foot2',p:[62,22],s:.55},
   coil:{f:'dandan/coil',p:[96,34],s:.42},lasso:{f:'dandan/lasso',p:[90,20],s:.42}},
  leg:{hipF:[26,-8],hipB:[-20,-10],knee:[0,20],ankle:[0,18],sole:[0,62]},
@@ -16,7 +16,7 @@ const DAN={name:'단단',key:'dandan',Tc:.44,stride:64,lift:24,legLen:100,armSwi
    ctx.save();ctx.translate(o.hx,o.hy+60);ctx.rotate(o.shellRot||0);ctx.scale(1.05+.1*(o.shellSq||0),1.05-.15*(o.shellSq||0));ctx.rotate(Math.PI/2);D({f:'dandan/shell_side',p:[250,232],s:.5});ctx.restore();return}
   // 뒷팔(먼 쪽) → 등껍질 → 다리 → 몸통 → 머리 → 앞팔. 등껍질은 몸통 프레임에만 붙음 (몸 흔들림·기울기만 따라감, 팔과 무관)
   ctx.save();c.torsoFrame();armPiece(h.P.armW,[-18,-128],o.shB,1);ctx.restore();
-  ctx.save();c.torsoFrame();ctx.translate(-22,-84);ctx.rotate(.04+(o.shellTilt||0));D(h.P.shell);ctx.restore();
+  ctx.save();c.torsoFrame();ctx.translate(-44,-92);ctx.rotate(.12+(o.shellTilt||0));D(h.P.shell);ctx.restore();
   legDraw(hipB,gB,1);legDraw(hipF,gF,0);c.torso();
   if(K>0){ctx.save();ctx.translate(0,K*60);c.head();ctx.restore()}else c.head();
   ctx.save();c.torsoFrame();const coil=o.noCoil?null:()=>{D(h.P.coil)};ch.mats.handF=armPiece(h.P.arm,[40,-126],o.shF,0,GRIP,coil,o.propA);ctx.restore()},
