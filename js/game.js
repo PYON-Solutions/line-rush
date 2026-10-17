@@ -370,7 +370,7 @@ function useSkill(h, i) {
     const F2 = FOX;
     if (i===0) later(h, relT(h,'skill1'), () => { if (h.respawn>0) return; h.x = clamp(h.x + f*14, 40, WORLD_W-40); const reach = F2.slash.reach*Math.sqrt(rm);  // 반 발짝만 (이동기 아님)
       fx({kind:'xslash', x:h.x+f*70, y:cy(h)-4, f, life:0.35}); shake = Math.max(shake, 5);
-      for (const e of enemiesOf(h.team, {dragon:true})) { const dx = (e.x-h.x)*f; if (dx > -20 && dx < reach+e.w/2 && Math.abs(cy(e)-cy(h)) < 80) damage(h, e, F2.slash.dmg*m*(e.kind==='minion' ? 1.3 : 1)*(h.clone && e.hp < e.maxHp*F2.lowHp ? F2.lowMul : 1), {pc:'#d9a8ff', color:'#e6c8ff'}); } });
+      for (const e of enemiesOf(h.team, {dragon:true})) { const dx = (e.x-h.x)*f; if (dx > -20 && dx < reach+e.w/2 && Math.abs(cy(e)-cy(h)) < 80) damage(h, e, F2.slash.dmg*m*(e.kind==='minion' ? 1.3 : (e.kind==='tower'||e.kind==='base') ? 0.5 : 1)*(h.clone && e.hp < e.maxHp*F2.lowHp ? F2.lowMul : 1), {pc:'#d9a8ff', color:'#e6c8ff'}); } });
     if (i===1) later(h, relT(h,'skill2'), () => { if (h.respawn>0) return; const a = aimAng(h, f); G.proj.push({kind:'dagger', no3d:true, x:h.x+f*20, y:cy(h)-8, vx:Math.cos(a)*f*F2.mark.spd, vy:Math.sin(a)*F2.mark.spd, team:h.team, owner:h, dmg:F2.mark.dmg*m, life:F2.mark.life, mark:{dur:F2.mark.dur + F2.mark.durLv*lvK(h), mul:F2.mark.mul}}); });
     if (i===2) later(h, relT(h,'ult'), () => { if (h.respawn>0) return; h.clone = {end:G.t + F2.clone.dur + ultTier(h), mul:F2.clone.mul*(1+0.3*ultTier(h))*(1+0.25*G.teams[h.team].skill[2]), atkT:0.25, seq:0, t0:G.t};
       burst(h.x - f*45, cy(h), '#b07aff', 26); fx({kind:'smoke', x:h.x - f*45, y:h.y, life:0.6}); shake = Math.max(shake, 6); });
