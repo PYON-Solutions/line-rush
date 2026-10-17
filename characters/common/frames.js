@@ -94,6 +94,7 @@ const FXFS = `varying vec2 vUv; uniform sampler2D map; uniform float opacity; un
 export function makeFx(sheet, o = {}) {
   const mat = new THREE.ShaderMaterial({ vertexShader: VS, fragmentShader: FXFS, transparent: true, depthWrite: false, depthTest: o.depthTest !== false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
     uniforms: { map: { value: sheet.tex }, uvRect: { value: new THREE.Vector4(0, 0, 1, 1) }, opacity: { value: 1 }, tint: { value: new THREE.Color(o.tint || 0xffffff) } } });
+  if (o.gain) mat.uniforms.tint.value.multiplyScalar(o.gain);   // 밝기 증폭 (가산이라 1보다 크면 더 환하게)
   const geo = new THREE.PlaneGeometry(1, 1); const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, 1 - uv.getY(i));
   const w = o.w || 2, h = w * sheet.h / sheet.w;
   geo.translate(0, o.bottom ? 0.5 : 0, 0);

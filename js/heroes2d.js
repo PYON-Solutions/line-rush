@@ -255,14 +255,45 @@ function updateFrameHero(m, e, dt) {
     else if (Math.abs(e.vx || 0) > 10) { setBase(F, 'walk'); A.fpsMul = Math.max(0.6, Math.min(1.5, Math.abs(e.vx) / ((e.d && e.d.spd) || 205))); }
     else setBase(F, 'idle');
   }
-  // 귀환 이펙트: 채널 중 빛 기둥 루프, 완료(남은 시간≈0)면 도착 지점에서 마무리 섬광
+  // 귀환 이펙트: 채널 중 빛 기둥(뒤: 넓고 밝게 + 앞: 얇게) + 바닥 광륜 + 두 손 사이 에너지 구슬(채널 진행만큼 커짐),
+  // 완료(남은 시간≈0)면 도착 지점에서 큰 섬광 + 마무리 기둥 + 반짝이 폭발. 취소되면 빠르게 사라짐
+  const RF = F.FX && F.FX.recall;
   if (e.recall) {
-    F.recT = e.recall.t;
-    if (!F.rec && F.FX && F.FX.recall) F.rec = fxAdd(F, m, 'recall', { w: 1.9, bottom: true, y: -0.1, z: 0.2, loop: true, to: F.FX.recall.loopN, fadeIn: 0.3 });
+    F.recT = e.recall.t; F.recK = Math.max(0, Math.min(1, 1 - e.recall.t / (e.recall.t0 || 4)));
+    if (!F.rec && RF) {
+      F.rec = [fxAdd(F, m, 'recall', { w: 3.0, bottom: true, y: -0.15, z: -0.05, loop: true, to: RF.loopN, fadeIn: 0.35, gain: 2.2, renderOrder: 4.7 }),
+        fxAdd(F, m, 'recall', { w: 2.1, bottom: true, y: -0.1, z: 0.25, loop: true, to: RF.loopN, fadeIn: 0.5, gain: 1.3, alpha: 0.55, fps: 15 })];
+      const tc = 0xc8ff8a;
+      F.orb = { core: glowSprite(0xffffff, 0.3), halo: glowSprite(tc, 0.8), ring: glowSprite(tc, 2.4), t: 0 };
+      F.orb.core.renderOrder = 6.6; F.orb.halo.renderOrder = 6.5; F.orb.ring.renderOrder = 1.6; F.orb.ring.scale.set(2.6, 0.55, 1);
+      m.userData.body.add(F.orb.core, F.orb.halo, F.orb.ring);
+    }
   } else if (F.rec) {
-    F.rec.stop(); F.rec = null;
-    if (F.recT < 0.15 && F.FX.recall) fxAdd(F, m, 'recall', { w: 2.3, bottom: true, y: -0.1, z: 0.2, from: F.FX.recall.loopN, fps: 10, fadeOut: 0.2 });
+    F.rec.forEach(x => x && x.stop()); F.rec = null;
+    if (F.recT < 0.15 && RF) {   // 도착!
+      fxAdd(F, m, 'recall', { w: 3.6, bottom: true, y: -0.15, z: 0.3, from: RF.loopN, fps: 10, fadeOut: 0.25, gain: 2.4 });
+      fxAdd(F, m, 'impact', { w: 4.2, y: 1.2, z: 0.4, fps: 26, tint: 0xe8ffc0, gain: 1.6 });
+      const fl = glowSprite(0xf4ffd8, 1); fl.renderOrder = 7.5; fl.position.set(0, 1.2, 0.5); m.add(fl); F.flash = { s: fl, t: 0 };
+      const p = new THREE.Vector3(); m.getWorldPosition(p);
+      burst(p.x, p.y + 1.1, p.z + .4, { n: 28, tex: T.star, color: [0xd8ff9a, 0xffffff, 0xfff2a0], spd: 3.6, size: .4, life: .8, g: -1.2, spread: 1.4, spreadY: .8, add: true });
+      burst(p.x, p.y + 0.2, p.z + .4, { n: 16, tex: T.glow, color: [0xb8ff70, 0xffffff], spd: 2.2, size: .6, life: .6, g: -3, spread: 1.6, add: true });
+    }
+    if (F.orb) F.orb.fade = 1;
   }
+  if (F.orb) {   // 구슬: 손 위치(프레임별 hand)에 붙고, 채널할수록 커지고 밝아짐 + 떨림/맥동
+    const O = F.orb; O.t += dt; const hw = S.hand(A.frame, F.mirror) || [F.mirror ? -0.9 : 0.9, 1.2];
+    if (O.fade != null) O.fade -= dt * 5;
+    const k = F.recK || 0, a = Math.min(1, O.t / 0.4) * (O.fade != null ? Math.max(0, O.fade) : 1), pul = 1 + 0.12 * Math.sin(O.t * 22) + 0.06 * Math.random();
+    const r = (0.3 + 0.95 * k) * pul;
+    O.core.position.set(hw[0], hw[1], 0.12); O.halo.position.set(hw[0], hw[1], 0.1);
+    O.core.scale.setScalar(r * 0.55); O.halo.scale.setScalar(r * 1.2); O.ring.position.set(0, 0.06, 0.05); O.ring.scale.set(2.2 + 1.4 * k, 0.45 + 0.25 * k, 1);
+    O.core.material.opacity = a; O.halo.material.opacity = a * (0.6 + 0.4 * k); O.ring.material.opacity = a * (0.35 + 0.55 * k) * (0.85 + 0.15 * Math.sin(O.t * 9));
+    if (Math.random() < dt * (6 + 30 * k) && a > 0.5) { const p = new THREE.Vector3(hw[0], hw[1], 0.15); m.userData.body.localToWorld(p);
+      burst(p.x, p.y, p.z, { n: 1, tex: T.glow, color: [0xd8ff9a, 0xffffff], spd: 0.6 + k, size: 0.12 + 0.12 * k, life: 0.5, g: -1.5, spread: 0.5, add: true }); }
+    if (O.fade != null && O.fade <= 0) { [O.core, O.halo, O.ring].forEach(x => { x.parent && x.parent.remove(x); x.material.dispose(); }); F.orb = null; }
+  }
+  if (F.flash) { const L2 = F.flash; L2.t += dt; const q = L2.t / 0.45; L2.s.scale.setScalar(1.5 + 7 * Math.sqrt(q)); L2.s.material.opacity = Math.max(0, 1 - q) * 1.2;
+    if (q >= 1) { L2.s.parent && L2.s.parent.remove(L2.s); L2.s.material.dispose(); F.flash = null; } }
   if (F.after) { F.after.t -= dt; if (F.after.t <= 0) { fxAdd(F, m, 'quake', { w: F.after.w, bottom: true, y: -0.4, z: 0.45, from: 3, fps: 16, alpha: 0.55, renderOrder: 4.6 }, true); F.after = null; } }
   for (let i = F.fx.length - 1; i >= 0; i--) if (!F.fx[i].update(dt)) F.fx.splice(i, 1);
   // 그리기
@@ -282,7 +313,7 @@ function updateFrameHero(m, e, dt) {
 }
 function frameDeath(m, e, D, dt) {
   const F = m.userData.frames, S = F.S, t = D.t, dir = D.dir, sc = m.userData.heroScale || 1;
-  if (!D.started) { D.started = true; F.A.play('death'); F.one = 'death'; F.mirror = (e.face || F.face) < 0; F.rec && F.rec.stop(); F.rec = null; }
+  if (!D.started) { D.started = true; F.A.play('death'); F.one = 'death'; F.mirror = (e.face || F.face) < 0; F.rec && F.rec.forEach(x => x && x.stop()); F.rec = null; if (F.orb) { [F.orb.core, F.orb.halo, F.orb.ring].forEach(x => { x.parent && x.parent.remove(x); x.material.dispose(); }); F.orb = null; } }
   F.A.update(dt); S.show(F.A.frame, F.mirror);
   // 맞은 방향으로 살짝 밀려남 + 작은 튀어오름 (프레임이 넘어지는 동작을 보여줌)
   const air = .45, ta = Math.min(t, air), kx = 1 - Math.pow(1 - ta / air, 2);

@@ -19,7 +19,7 @@ A={
  'ult':   dict(src='ult',f=[5,8,11,23,25,27,29,33,45,9],fps=9,loop=False,key=5,shadow=320),
  'jump':  dict(src='jump',f=[16,20,22,34,36,40],fps=12,loop=False,footnorm=[20,22,34,36]),
  'dash':  dict(src='dash',f=[9,13,19,27,35,39],fps=20,loop=False),
- 'recall':dict(src='recall',f=[10,19,28,37,46,58,70,79]+[82,85,88,91,94,97],fps=8,loop=True,loopFrom=8,pingpong=True),
+ 'recall':dict(src='recall2',f=[4,10,16,22,28,37,46,55,61]+list(range(67,90,3)),fps=12,loop=True,loopFrom=9,hand={i:(415,228) for i in range(37,92)}),
  'hit':   dict(src='hit',f=[9,11,13],fps=12,loop=False),
  'death': dict(src='death',f=[13,33,41,43,45,47,49,53],fps=10,loop=False),
 }
