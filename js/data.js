@@ -2,24 +2,48 @@
 const WORLD_W = 4400, VIEW_H = 450, GROUND = 382;
 const HEROES = {
   bear: { name:'뭉치', role:'곰 전사 · 근접', img:'h_bear', color:'#c98a4b',
-    hp:990, hpL:58, atk:72, atkL:5, mana:[45,60,140], range:80, as:0.85, spd:210, armor:0.10, proj:null, lifesteal:0.05,
+    hp:1030, hpL:60, atk:75, atkL:5, mana:[45,60,140], range:80, as:0.85, spd:210, armor:0.10, proj:null, lifesteal:0.05,
     skills:[
       {name:'쿵 내려찍기', cd:10, desc:'점프 후 내려찍어 주변 기절 (레벨에 따라 범위·기절 증가)'},
       {name:'꿀 방패', cd:14, desc:'3초간 받는 피해 35% 감소'},
       {name:'곰 돌진', cd:40, desc:'앞으로 돌진하며 적을 밀쳐냄'}]},
   chick:{ name:'삐요', role:'병아리 궁수 · 원거리', img:'h_chick', color:'#f2c230',
-    hp:710, hpL:51, atk:59, atkL:4, mana:[40,50,140], range:300, rangeLv1:0.85, as:0.7, spd:215, armor:0, proj:'arrow',
+    hp:710, hpL:51, atk:56, atkL:4, mana:[40,50,140], range:300, rangeLv1:0.85, as:0.7, spd:215, armor:0, proj:'arrow',
     skills:[
       {name:'삼연발', cd:6, desc:'화살 3발을 부채꼴로 발사'},
       {name:'끈끈이 덫', cd:12, desc:'바닥에 덫 설치 — 밟은 적에게 피해 + 둔화'},
       {name:'화살비', cd:45, desc:'넓은 지역에 화살비'}]},
   cat:  { name:'모모', role:'고양이 마법사 · 마법', img:'h_cat', color:'#8b8fd8',
-    hp:740, hpL:54, atk:68, atkL:4.4, mana:[50,60,140], range:265, as:1.0, spd:205, armor:0, proj:'orb',
+    hp:740, hpL:54, atk:65, atkL:4.4, mana:[50,60,140], range:265, as:1.0, spd:205, armor:0, proj:'orb',
     skills:[
       {name:'얼음 냥펀치', cd:7, desc:'얼음 구체로 피해+둔화'},
       {name:'속박 마법진', cd:13, desc:'잠시 후 마법진 안의 적을 묶음 (이동 불가)'},
       {name:'별똥별', cd:50, desc:'거대한 별을 떨어뜨림'}]},
+  turtle:{ name:'단단', role:'거북이 탱커 · 근접', img:'h_turtle', color:'#6f9a3a',
+    hp:1200, hpL:74, atk:72, atkL:5.2, mana:[55,45,140], range:78, as:0.88, spd:205, armor:0.22, proj:null,
+    skills:[
+      {name:'덩굴 올가미', cd:12, desc:'덩굴 올가미를 던져 처음 맞은 적을 끌어옴 + 피해 (레벨에 따라 사거리·피해 증가)'},
+      {name:'등껍질 박치기', cd:9, desc:'다음 공격이 적을 공중에 띄움 (짧은 기절, 레벨에 따라 증가)'},
+      {name:'대지 진동', cd:38, desc:'등껍질에 숨었다가 땅을 내리쳐 주변에 피해 + 둔화'}]},
+  fox:  { name:'살랑', role:'여우 암살자 · 근접', img:'h_fox', color:'#8a4fd0',
+    hp:1000, hpL:66, atk:84, atkL:6, mana:[40,45,140], range:80, as:0.72, spd:220, armor:0.10, proj:null, lifesteal:0.06,
+    skills:[
+      {name:'그림자 베기', cd:5, desc:'앞쪽을 짧게 베어 큰 피해 (이동기 아님)'},
+      {name:'그림자 표식', cd:11, desc:'단검을 던져 맞은 적에게 표식 — 몇 초간 받는 피해 증가'},
+      {name:'그림자 분신', cd:42, desc:'보라색 그림자 분신이 함께 공격. 체력이 낮은 적에게 추가 피해'}]},
+  rabbit:{ name:'토토', role:'토끼 소환사 · 원거리', img:'h_rabbit', color:'#e8812a',
+    hp:720, hpL:52, atk:58, atkL:4.2, mana:[50,50,140], range:300, as:0.9, spd:205, armor:0, proj:'seed',
+    skills:[
+      {name:'당근 정령 소환', cd:14, desc:'당근 정령이 따라다니며 씨앗을 쏨 (레벨에 따라 1→3마리)'},
+      {name:'씨앗 폭탄', cd:9, desc:'씨앗을 던져 폭발 — 주변 피해 + 둔화'},
+      {name:'거대 당근 나무', cd:50, desc:'거대한 당근 나무가 솟아 주변 적을 계속 공격 (건물에 강함)'}]},
 };
+// 새 영웅 스킬 수치 (피해는 skillMul 로, 범위는 radMul 로, 군중제어는 ccDur 로 레벨 성장)
+const TURTLE = { lasso:{dmg:110, spd:950, life:0.44, stun:0.35}, bash:{window:5, dmg:110, stun:0.55, lift:480},
+  quake:{dmg:270, r:185, slow:1.5, slowCc:0.5, after:0.42, afterMul:0.4} };
+const FOX = { slash:{dmg:195, reach:150}, mark:{dmg:55, spd:950, life:0.45, dur:3, durLv:1.5, mul:0.45}, clone:{dur:6, mul:0.65}, lowHp:0.4, lowMul:1.3 };
+const RABBIT = { spirit:{dur:8, dmg:26, cd:0.9, range:320}, bomb:{dmg:85, r:85, slow:1.2, slowCc:0.6},
+  tree:{dur:5, dmg:45, hit:80, every:0.5, r:130, structMul:1.6} };
 // 영웅 레벨 1~20: LEVEL_XP[n] = 레벨 n+1 이 되는 누적 경험치 (구간 = 100 + 40×(n-1))
 const MAX_LV = 20;
 const LEVEL_XP = (() => { const a=[0]; for (let n=1;n<MAX_LV;n++) a.push(a[n-1] + 100 + 40*(n-1)); return a; })();

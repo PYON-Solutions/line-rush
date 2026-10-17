@@ -1,6 +1,6 @@
 // 킬 아나운서 (LoL 스타일): 화면 위쪽 배너 + 왼쪽 킬 피드 + 내 영웅 사망 시 흑백 화면/부활 카운트다운
 // game.js의 kill() 끝에서 ANN.onKill(e, src, G, sfx) 호출. 화면은 DOM 오버레이(게임 캔버스 위, 터치 통과)
-const PORT = { bear: 'mungchi', chick: 'piyo', cat: 'momo' };
+const PORT = { bear: 'mungchi', chick: 'piyo', cat: 'momo', turtle: 'dandan', fox: 'salang', rabbit: 'toto' };
 const portrait = (h) => h && PORT[h.key] ? `characters/${PORT[h.key]}/portrait_${h.team ? 'red' : 'blue'}.png` : null;
 const nameOf = h => (h && typeof HEROES !== 'undefined' && HEROES[h.key]) ? HEROES[h.key].name : '영웅';
 const dimg = () => `dragons/${(window.MAP && MAP.dragon) || 'dragon'}.png`;  // 맵의 드래곤 그림

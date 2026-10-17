@@ -5,7 +5,7 @@
 // 사용: node tools/sim.js [경기수/매치업=200] [출력.json] [--cap=1800] [--jobs=8] [--map=meadow|canyon|volcano|snow]
 const fs = require('fs'), path = require('path'), vm = require('vm'), { fork } = require('child_process');
 const ROOT = path.join(__dirname, '..');
-const HEROES = ['bear', 'chick', 'cat'];
+const HEROES = (process.env.LR_HEROES || 'bear,chick,cat,turtle,fox,rabbit').split(',');
 
 function makeContext() {
   const noop = () => {};

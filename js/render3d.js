@@ -528,7 +528,7 @@ export function createRenderer(container) {
   }
 
   function syncProj(p, GROUND) {
-    if (p.delay > 0) return;
+    if (p.delay > 0 || p.no3d) return;  // no3d: 2D 오버레이(game.js drawSkillFx)가 그림
     if (p.kind === 'rain') {
       // visual zone marker
       let m = projMap.get(p);
@@ -718,13 +718,14 @@ export function createRenderer(container) {
   let menuT0 = null, menuCx = 30;
   // 선택 화면 영웅을 화면 가로 21% 지점에 (화면 비율이 달라도 같은 자리)
   const showOff = () => (0.5 - 0.21) * 2 * 7.8 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect;
+  const MENU_KEYS = ['bear', 'chick', 'cat', 'turtle', 'fox', 'rabbit'];
   function renderMenu(t, sceneName, selHero, opts = {}) {
     mode = sceneName; clock.t = t;
     world.visible = true; hills.visible = true;
     const mg = scene.getObjectByName('menuGround'), md = scene.getObjectByName('menuDirt'); if (mg) mg.visible = false; if (md) md.visible = false;
-    if (!menuHeroes) showMenuHeroes(['bear', 'chick', 'cat'], selHero);
+    if (!menuHeroes) showMenuHeroes(MENU_KEYS, selHero);
     const dt = menuT0 == null ? 0.016 : Math.min(0.05, Math.max(0, t - menuT0)); menuT0 = t;
-    const sel = sceneName === 'select', keys = ['bear', 'chick', 'cat'];
+    const sel = sceneName === 'select', keys = MENU_KEYS;
     menuCx += dt * (sel ? 0.35 : 1.6); if (menuCx > 105) menuCx = 18;   // 천천히 라인을 따라 이동 (배경 패럴랙스)
     const cx = menuCx;
     menuHeroes.forEach((h, i) => {
@@ -739,8 +740,8 @@ export function createRenderer(container) {
         updatePuppet(h, e, dt);
       } else {
         h.visible = true;
-        const off = (i - 1) * 3.3, bob = Math.abs(Math.sin(t * 7 + i * 2.1)) * 0.06;
-        h.position.set(cx + off + Math.sin(t * 0.9 + i * 2) * 0.35, bob, 1.0 - Math.abs(i - 1) * 0.3); h.scale.setScalar(1.05);
+        const off = (i - (keys.length - 1) / 2) * 2.25, bob = Math.abs(Math.sin(t * 7 + i * 2.1)) * 0.06;
+        h.position.set(cx + off + Math.sin(t * 0.9 + i * 2) * 0.35, bob, 1.0 - (i % 2) * 0.55); h.scale.setScalar(0.95);
         updatePuppet(h, { face: 1, ground: true, vx: 200 }, dt);
       }
     });

@@ -187,7 +187,14 @@
   }
 
   // ---------- 영웅 선택 ----------
-  function skillIcon(x, y, r, j, color, locked) {
+  // 스킬 아이콘: ui/skills/<영웅>_<0|1|2>.png (금테 아이콘 그림). 그림이 없으면 예전 도형
+  function skillIcon(x, y, r, j, color, locked, key) {
+    const im = key && IMG['sk_' + key + '_' + j];
+    if (im && im.complete && im.naturalWidth) {
+      ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2; ctx.drawImage(im, x - r * 1.12, y - r * 1.12, r * 2.24, r * 2.24); ctx.restore();
+      if (locked) { ctx.fillStyle = 'rgba(10,14,30,0.55)'; rr(x - r, y - r, r * 2, r * 2, r * 0.35); ctx.fill(); }
+      text(['1', '2', '궁'][j], x + r - 2, y + r - 3, 10, '#fff', 'center', { lw: 3, w: 900 }); return;
+    }
     const cols = [['#ffb35a', '#e0601a'], ['#6ad0ff', '#2a6fd8'], ['#d08cff', '#7a2fd0']][j];
     ctx.save(); ctx.translate(x, y);
     const g = ctx.createLinearGradient(0, -r, 0, r); g.addColorStop(0, cols[0]); g.addColorStop(1, cols[1]);
@@ -232,8 +239,9 @@
     const tw = tags.map(t => ctx.measureText(t).width + 18), ttot = tw.reduce((a, b) => a + b + 6, -6); let tx = VW * 0.21 - ttot / 2;
     tags.forEach((t, i) => { ctx.fillStyle = i ? 'rgba(80,110,220,0.9)' : d.color; rr(tx, 100, tw[i], 20, 10); ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1.2; ctx.stroke(); text(t, tx + tw[i] / 2, 110.5, 11, '#fff', 'center', { stroke: false }); tx += tw[i] + 6; });
     // 아래 왼쪽: 영웅 탭 (초상화)
-    const tabY = VIEW_H - 42, tabR = 28;
-    ks.forEach((k, i) => { const x = VW * 0.21 + (i - 1) * 74, sel = selHero === k, H = HEROES[k];
+    const tabY = VIEW_H - 42, tabSp = Math.min(74, (px - 34) / ks.length), tabR = Math.min(28, tabSp * 0.42);
+    panel(VW * 0.21 - ks.length * tabSp / 2 - 6, tabY - tabR - 9, ks.length * tabSp + 12, tabR * 2 + 26, 16, 0.38);
+    ks.forEach((k, i) => { const x = VW * 0.21 + (i - (ks.length - 1) / 2) * tabSp, sel = selHero === k, H = HEROES[k];
       ctx.save(); ctx.translate(x, tabY); const s = (pressed('h_' + k) ? 0.9 : 1) * (sel ? 1.12 : 0.92); ctx.scale(s, s);
       if (sel) { ctx.shadowColor = H.color; ctx.shadowBlur = 18 + Math.sin(T * 5) * 6; }
       ctx.fillStyle = sel ? H.color : 'rgba(30,36,70,0.85)'; ctx.beginPath(); ctx.arc(0, 0, tabR, 0, 6.283); ctx.fill(); ctx.shadowBlur = 0;
@@ -243,7 +251,7 @@
       if (sel) { ctx.strokeStyle = `rgba(255,240,170,${0.5 + 0.5 * Math.sin(T * 6)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, tabR + 5 + Math.sin(T * 6) * 1.5, 0, 6.283); ctx.stroke(); }
       ctx.restore();
       text(H.name, x, tabY + tabR + 4, 10, sel ? '#ffe066' : '#dfe6ff', 'center', { lw: 3 });
-      hit('h_' + k, { x: x - 34, y: tabY - 34, w: 68, h: 76 }, () => changeHero(k), 'swap');
+      hit('h_' + k, { x: x - tabSp / 2, y: tabY - 34, w: tabSp, h: 76 }, () => changeHero(k), 'swap');
     });
     // 무대(영웅 3D) 영역 탭 → 다음 영웅
     uiRects.push({ r: { x: 0, y: 130, w: px - 30, h: VIEW_H - 130 - 76 }, fn: () => { const i = ks.indexOf(selHero); changeHero(ks[(i + 1) % ks.length]); uiSfx('swap'); } });
@@ -252,13 +260,13 @@
     const sx = px + ox, sy = 56;
     panel(sx, sy, pw, 112, 14);
     const sw = (pw - 36) / 2;
-    const stats = [['체력', Math.min(1, d.hp / 1000), ['#7cf06a', '#22a63c'], 'hp'], ['공격력', Math.min(1, d.atk / 80), ['#ffb35a', '#e0601a'], 'atk'], ['사거리', Math.min(1, d.range / 320), ['#6ad0ff', '#2a6fd8'], 'rng'],
+    const stats = [['체력', Math.min(1, d.hp / 1100), ['#7cf06a', '#22a63c'], 'hp'], ['공격력', Math.min(1, d.atk / 80), ['#ffb35a', '#e0601a'], 'atk'], ['사거리', Math.min(1, d.range / 320), ['#6ad0ff', '#2a6fd8'], 'rng'],
       ['이동속도', Math.min(1, (d.spd - 150) / 80), ['#ffe680', '#e0a020'], 'spd'], ['공격속도', Math.min(1, 0.55 / d.as), ['#ff8ce0', '#c040a0'], 'as'], ['방어력', Math.min(1, 0.25 + (d.armor || 0) * 5), ['#c8d0e8', '#7080a8'], 'arm']];
     stats.forEach(([lb, k, col, key], i) => statBar(lb, sx + 12 + (i % 2) * (sw + 12), sy + 22 + Math.floor(i / 2) * 32, sw, k, col, key));
     // 스킬
     const ky = sy + 120; panel(sx, ky, pw, 150, 14);
     d.skills.forEach((s, j) => { const y = ky + 26 + j * 46, lv = SKILL_LV[j];
-      skillIcon(sx + 30, y, 18, j, d.color);
+      skillIcon(sx + 30, y, 19, j, d.color, false, selHero);
       text(s.name, sx + 56, y - 9, 14, '#fff', 'left', { lw: 3 });
       ctx.font = F(14, 800); const nw = ctx.measureText(s.name).width;
       text(`Lv.${lv} 해제 · 쿨 ${s.cd}초 · 마나 ${d.mana[j]}`, sx + 62 + nw, y - 8, 9.5, '#aab8e8', 'left', { stroke: false, w: 700 });

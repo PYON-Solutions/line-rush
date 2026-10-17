@@ -43,7 +43,8 @@ export function makePuppetHero(gameKey, team) {
 
 // 게임 엔티티 상태 → 퍼펫 상태 (e: 게임 hero 엔티티, 또는 메뉴용 가짜 상태)
 // 각 동작에서 무기를 '놓는' 시점 (동작 진행률 k): characters/*/rig.js 의 tick 기준
-const REL_K = { mungchi:{basic:.42, basic3:.42}, piyo:{basic:.62, skill1:.62, skill2:.45, ult:.62}, momo:{basic:.4, skill1:.4, skill2:.3, ult:.22} };
+const REL_K = { mungchi:{basic:.42, basic3:.42}, piyo:{basic:.62, skill1:.62, skill2:.45, ult:.62}, momo:{basic:.4, skill1:.4, skill2:.3, ult:.22},
+  dandan:{basic:.42, bash:.45, skill1:.42, ult:.62}, salang:{basic:.4, skill1:.4, skill2:.42, ult:.35}, toto:{basic:.4, skill1:.35, skill2:.42, ult:.45} };
 export function updatePuppet(m, e, dt) {
   const P = m.userData.puppet; if (!P) return;
   const ch = P.ch; dt = Math.min(0.05, dt || 0.016);
@@ -70,7 +71,19 @@ export function updatePuppet(m, e, dt) {
   const g = P.g, U = CH / 720;
   g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, CW, CH);
   if (e.flash > 0.6) g.translate((Math.random() - .5) * 6, 0);
-  drawFX('back'); renderChar(ch); drawFX('front');
+  drawFX('back');
+  // 살랑 그림자 분신: 영웅 뒤에 반투명 보라색 복제 퍼펫 (공격할 때 같이 벰)
+  if (e.clone) { if (!P.ch2) { P.ch2 = newChar(ch.hero, 0, ch.face); setMode(P.ch2, 'idle'); P.cseq = 0; P.cT = 0; }
+    const c2 = P.ch2; c2.face = ch.face; P.cT = Math.min(1, P.cT + dt * 3);
+    if ((e.clone.seq || 0) !== P.cseq) { P.cseq = e.clone.seq || 0; setMode(c2, Math.random() < 0.5 ? 'basic' : 'skill1'); c2.actRate = 1.5; }
+    const want2 = moving ? 'run' : 'idle'; if (!c2.act && c2.mode !== want2) setMode(c2, want2);
+    update(c2, c2.act ? dt * (c2.actRate || 1) : dt); c2.x = -ch.face * 170 * P.cT; c2.y = -18 * Math.sin(performance.now() / 300); c2.trail.length = 0;
+    if (!P.cv2) { P.cv2 = document.createElement('canvas'); P.cv2.width = CW; P.cv2.height = CH; }
+    const g2 = P.cv2.getContext('2d'); g2.setTransform(1, 0, 0, 1, 0, 0); g2.clearRect(0, 0, CW, CH); setTarget(g2, CW, CH); renderChar(c2);
+    g2.globalCompositeOperation = 'source-atop'; g2.fillStyle = 'rgba(120,50,200,0.55)'; g2.fillRect(0, 0, CW, CH); g2.globalCompositeOperation = 'source-over';
+    setTarget(P.g, CW, CH); P.g.save(); P.g.globalAlpha = 0.62 * P.cT; P.g.shadowColor = '#b070ff'; P.g.shadowBlur = 16; P.g.drawImage(P.cv2, 0, 0); P.g.restore();
+  } else if (P.ch2) { P.ch2 = null; }
+  renderChar(ch); drawFX('front');
   // 피격 플래시
   if (e.flash > 0) { g.save(); g.globalCompositeOperation = 'source-atop'; g.fillStyle = `rgba(255,255,255,${Math.min(.8, e.flash * .8)})`; g.fillRect(0, 0, CW, CH); g.restore(); }
   if (e.stun > 0) { g.save(); g.translate(CW / 2, (PGY - 400) * U); for (let i = 0; i < 3; i++) { const a = performance.now() / 200 + i * 2.1; g.fillStyle = '#ffe066'; g.beginPath(); g.arc(Math.cos(a) * 40 * U, Math.sin(a) * 10 * U, 9 * U, 0, TAU); g.fill(); } g.restore(); }

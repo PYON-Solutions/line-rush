@@ -166,6 +166,9 @@ export function makeProjectile(kind, elem) {
     add(root, sphere(1, 0x8f8a80), 0, 0, 0, 0.14, 0.12, 0.13);
   } else if (kind === 'ball') {
     add(root, sphere(1, 0x333333), 0, 0, 0, 0.14, 0.14, 0.14);
+  } else if (kind === 'seed') { // 토토 씨앗: 빛나는 연두 씨앗
+    add(root, sphere(1, 0xd8ff7a, { emissive: 0xa8e040, ei: 0.9 }), 0, 0, 0, 0.13, 0.1, 0.1);
+    add(root, sphere(1, 0xffffe0, { emissive: 0xffffc0, ei: 1 }), 0.03, 0.02, 0.02, 0.06, 0.05, 0.05);
   } else if (kind === 'star') {
     add(root, starMesh(0.4, 0xffe066));
     add(root, starMesh(0.22, 0xfffbe0));
