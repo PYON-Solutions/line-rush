@@ -7,7 +7,8 @@ TH=int(os.environ.get('TH','250'))
 def R(a,b,s=1): return list(range(a,b+1,s))
 # ref: 스케일 기준 클립 (raw_ultc 1-15 = raw_ult 10..52, 16-35 = raw_ult2)
 A={
- 'idle':  dict(d='raw_idle',f=[5,15,26,36,46,57,67,78],fps=8/3.46,loop=True),
+ # idle: 5..89 매 2프레임(12fps, 3.5초 주기). 89 다음 = 91≈5 (90↔5 차이 2.3 = 인접 프레임 수준) → 이음매 없이 루프
+ 'idle':  dict(d='raw_idle',f=R(5,89,2),fps=12,loop=True),
  'walk':  dict(d='raw',f=R(13,35,2),fps=12,loop=True),
  'attack':dict(d='raw_atk2',f=[4,10,14,17,20,23,26,29,33,38,43,48,54],fps=16,loop=False,key=6),
  # skill1: 0..7 공중(게임 점프 속도 vy로 프레임 선택), 8 = 내려찍기 착지(doSlam) 순간, 이후 회복
@@ -66,7 +67,7 @@ for act,L in placed.items():
     for j,(im,x,y,i,_) in enumerate(L):
         # sub-pixel placement: paste at integer pos (error < .5px at out scale)
         fn=f'{act}_{j:02d}.png'; im.save(f'{W}/out/frames/{fn}')
-        fr.append(dict(file=fn,src=i,off=[int(round(x-x0)),int(round(y-y0))],size=list(im.size)))
+        fr.append(dict(file=fn,src=i,off=[round(x-x0,2),round(y-y0,2)],size=list(im.size)))   # 소수점 위치 유지 (반올림 떨림 방지)
         hd=o.get('hand')
         if hd and j>=hd['start']: fr[-1]['hand']=hd['xy']
     m=dict(fps=round(o['fps'],3),loop=o['loop'],frames=fr)

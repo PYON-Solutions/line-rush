@@ -14,7 +14,7 @@ for r,a in enumerate(acts):
     d.text((6,y0+th//2-24),f"{a}\n{len(m['frames'])}f @ {m['fps']}fps\n{'loop' if m['loop'] else 'one-shot'}{'' if m.get('key') is None else ' key='+str(m['key'])}",fill=(255,255,200),font=FT)
     for c,f in enumerate(m['frames']):
         t=Image.new('RGBA',(bw,bh),(96,116,136,255) if c!=m.get('key') else (140,110,90,255))
-        im=Image.open(W+'/out/frames/'+f['file']);t.alpha_composite(im,tuple(f['off']))
+        im=Image.open(W+'/out/frames/'+f['file']);t.alpha_composite(im,tuple(int(round(v)) for v in f['off']))
         dd=ImageDraw.Draw(t);dd.line([(ax-12,ay),(ax+12,ay)],fill='red',width=2);dd.line([(ax,ay-12),(ax,ay+12)],fill='red',width=2)
         if f.get('hand'): hx,hy=ax+f['hand'][0],ay+f['hand'][1];dd.ellipse([hx-5,hy-5,hx+5,hy+5],outline='cyan',width=2)
         t=t.convert('RGB').resize((tw,th),Image.LANCZOS);img.paste(t,(LW+c*tw,y0+14))
